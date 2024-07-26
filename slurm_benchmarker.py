@@ -37,10 +37,6 @@ def create_sbatch_script_lammps(nodes, tasks, job_name, directives, environments
         y = int(2**math.ceil(math.log2(tasks)/3)) 
         z = int(2**(math.log2(tasks) - math.log2(x) - math.log2(y))) #Lammps requires being given a x y and z grid to separate the work into
               # This code above breaks the tasks respective sizes.
-    print(tasks)
-    print(x)
-    print(y)
-    print(z)
     ret =  f"""#!/bin/bash
 #SBATCH --job-name={job_name} 
 #SBATCH --nodes={nodes}
@@ -92,13 +88,19 @@ def ensure_directories():
 
     return (directives, environments)
 
+def open_tuple_file(file_name):
+    tuple_lines = open(file_name,'r').readlines()
+    ret = []
+    for node_task in tuple_lines:
+        nodes = int(node_task.split()[0])
+        tasks = int(node_task.split()[1])
+        ret.append((nodes,tasks))
+    return ret
+
 if __name__ == "__main__":
     directives, environments = ensure_directories()
-    node_task_tuples = open(args_dict["tuples"],'r').readlines()
-    for task_tuple in node_task_tuples:
-        task_tuple = task_tuple.split()
-        nodes = int(task_tuple[0])
-        tasks = int(task_tuple[1])
+    for nodes, tasks in open_tuple_file(args_dict["tuples"]):
+
         if args_dict["program"] == "lammps":
             job_name = f"lammps_n{nodes}_t{tasks}"
             script_content = create_sbatch_script_lammps(nodes, tasks, job_name, directives, environments)
