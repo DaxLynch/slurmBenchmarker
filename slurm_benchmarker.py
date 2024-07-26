@@ -64,7 +64,6 @@ spack load --first lammps
 #SBATCH --job-name={job_name} 
 #SBATCH --nodes={nodes}
 #SBATCH --ntasks={tasks}
-#SBATCH --ntasks-per-node={tasks // nodes}
 #SBATCH -t 0-0:10
 #SBATCH --output=benchmark_results/{args_dict["test_series"]}/{job_name}.out
 #SBATCH --error=benchmark_results/{args_dict["test_series"]}/{job_name}.err
@@ -111,6 +110,7 @@ def open_tuple_file(file_name):
     return ret
 
 if __name__ == "__main__":
+    ensure_directories()
     for nodes, tasks in open_tuple_file(args_dict["tuples"]):
         if args_dict["program"] == "lammps":
             job_name = f"lammps_n{nodes}_t{tasks}"
