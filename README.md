@@ -12,3 +12,4 @@ python -i slurm_logvis.py --test-series-name=fixedRunsOneNode --program=lammps
 Note do not put senistive data like account numbers in the machine specific directives
 
 
+
