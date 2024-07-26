@@ -35,7 +35,7 @@ def create_sbatch_script_lammps(nodes, tasks, job_name, directives, environments
     if tasks > 2:
         x = int(2**math.floor(math.log2(tasks)/3))
         y = int(2**math.ceil(math.log2(tasks)/3)) 
-        z = y #Lammps requires being given a x y and z grid to separate the work into
+        z = int(2**(math.log2(tasks) - math.log2(x) - math.log2(y))) #Lammps requires being given a x y and z grid to separate the work into
               # This code above breaks the tasks respective sizes.
     print(tasks)
     print(x)
