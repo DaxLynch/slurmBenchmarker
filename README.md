@@ -10,7 +10,7 @@ Once these have all returned, call slurm_logviz with similar commands.
 for example:
 with the given node_tuples.txt,
 
-python slurm_benchmarker.py --test-series-name=scaledRunTwoNodes --tuples=node_tuples.txt --program=lammps --size=free --machine=perlmutter
+python slurm_benchmarker.py --test-series=scaledRunTwoNodes --tuples=node_tuples.txt --program=lammps --size=free --machine=perlmutter
 python -i slurm_logvis.py --test-series-name=fixedRunsOneNode --program=lammps 
 
 
