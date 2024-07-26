@@ -55,12 +55,12 @@ spack load --first lammps
     elif args_dict["machine"] == "perlmutter":
         directives =  """#SBATCH --image docker:nersc/lammps_all:23.08
 #SBATCH -C cpu
-#SBATCH -A ######
+#SBATCH -A ###CHANGE ME TO YOUR PERLMUTTER ACCOUNT NUMBER###
 #SBATCH -q regular
 """
         slurm_flags = slurm_flags + "--cpu-bind=cores --module mpich shifter"
  
-    ret = f"""!/bin/bash
+    ret = f"""#!/bin/bash
 #SBATCH --job-name={job_name} 
 #SBATCH --nodes={nodes}
 #SBATCH --ntasks={tasks}
@@ -99,16 +99,7 @@ def ensure_directories():
         os.makedirs(join(dir_name,test_run)) 
     else:
         os.makedirs(dir_name) 
-        os.makedirs(join(dir_name,test_run)) 
-    
-    #Each machine has specific environment and directive codes, such as account#, etc.
-    #This ensures your srun command runs with proper directives and environment
-    directives_file = open("machine_specific_sbatch_directives.txt",'r')
-    environments_file = open("machine_specific_sbatch_environments.txt",'r')
-    directives = directives_file.read()
-    environments = environments_file.read()
-
-    return (directives, environments)
+        os.makedirs(join(dir_name,test_run))     
 
 def open_tuple_file(file_name):
     tuple_lines = open(file_name,'r').readlines()
@@ -120,12 +111,10 @@ def open_tuple_file(file_name):
     return ret
 
 if __name__ == "__main__":
-    directives, environments = ensure_directories()
     for nodes, tasks in open_tuple_file(args_dict["tuples"]):
-
         if args_dict["program"] == "lammps":
             job_name = f"lammps_n{nodes}_t{tasks}"
-            script_content = create_sbatch_script_lammps(nodes, tasks, job_name, directives, environments)
+            script_content = create_sbatch_script_lammps(nodes, tasks, job_name)
             submit_sbatch_script(script_content, job_name)
             print(f"Submitted job: {job_name}")
 

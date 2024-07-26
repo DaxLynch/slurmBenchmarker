@@ -1,5 +1,8 @@
 To run, alter the node_tuples.txt to show how many runs you want of specfic sizes, the two numbers representing nodes and tasks respective, with it assumed you want ntasks-per-node=nodes//tasks
 
+If running on perlmutter, alter the below line:
+#SBATCH -A ###CHANGE ME TO YOUR PERLMUTTER ACCOUNT NUMBER###
+
 Then call slurm_benchmarker with a test series, the file pointing to the tuples, which program you are wishing to record, and whether or not you want the size of the problem to scale, and which machine you are calling on. 
 
 Once these have all returned, call slurm_logviz with similar commands.
