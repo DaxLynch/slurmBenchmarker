@@ -4,9 +4,9 @@ variable        x index 1
 variable        y index 1
 variable        z index 1
 
-variable        xx equal 20*$x
-variable        yy equal 20*$y
-variable        zz equal 20*$z
+variable        xx equal 100*$x
+variable        yy equal 100*$y
+variable        zz equal 100*$z
 
 units           lj
 atom_style      atomic
