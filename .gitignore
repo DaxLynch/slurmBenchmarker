@@ -2,3 +2,4 @@
 *.err
 *.sbatch
 benchmark_results
+machine*

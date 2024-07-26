@@ -1,7 +1,0 @@
-# Set environment variables
-export MV2_HOMOGENEOUS_CLUSTER=1
-export MV2_SUPPRESS_JOB_STARTUP_PERFORMANCE_WARNING=1
-export OMP_NUM_THREADS=1
-
-# Load LAMMPS
-spack load --first lammps

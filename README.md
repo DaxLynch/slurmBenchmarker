@@ -1,11 +1,13 @@
-To run, alter the node_tuples.txt to show how many runs you want of specfic sizes, the two numbers representing nodes and tasks respective, with it assumed you want ntasks-per-node=
-nodes//tasks
+To run, alter the node_tuples.txt to show how many runs you want of specfic sizes, the two numbers representing nodes and tasks respective, with it assumed you want ntasks-per-node=nodes//tasks
 
-Then call slurm_benchmarker with a test series, the file pointing to the tuples, which program you are wishing to record, and whether or not you want the size of the problem to scale. 
+Then call slurm_benchmarker with a test series, the file pointing to the tuples, which program you are wishing to record, and whether or not you want the size of the problem to scale, and which machine you are calling on. 
 
 Once these have all returned, call slurm_logviz with similar commands.
 
-python slurm_benchmarker.py --test-series-name=scaledRunTwoNodes --tuples=node_tuples.txt --program=lammps --size=free 
+for example:
+with the given node_tuples.txt,
+
+python slurm_benchmarker.py --test-series-name=scaledRunTwoNodes --tuples=node_tuples.txt --program=lammps --size=free --machine=perlmutter
 python -i slurm_logvis.py --test-series-name=fixedRunsOneNode --program=lammps 
 
 
