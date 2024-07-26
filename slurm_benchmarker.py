@@ -27,11 +27,20 @@ args_dict = vars(args)
 # Define a function to create sbatch script content
 def create_sbatch_script_lammps(nodes, tasks, job_name, directives, environments):
     assert math.log2(tasks) == int(math.log2(tasks)) #Tasks must be power of two, I think this is an arbitrary decsion
-    x = int(2**math.floor(math.log2(tasks)/3))
-    y = int(2**math.ceil(math.log2(tasks)/3))
-    z = y #Lammps requires being given a x y and z grid to separate the work into
-          # This code above breaks the tasks respective sizes.
-
+    x = 1
+    y = 1
+    z = 1
+    if tasks == 2:
+        x = 2
+    if tasks > 2:
+        x = int(2**math.floor(math.log2(tasks)/3))
+        y = int(2**math.ceil(math.log2(tasks)/3)) 
+        z = y #Lammps requires being given a x y and z grid to separate the work into
+              # This code above breaks the tasks respective sizes.
+    print(tasks)
+    print(x)
+    print(y)
+    print(z)
     ret =  f"""#!/bin/bash
 #SBATCH --job-name={job_name} 
 #SBATCH --nodes={nodes}

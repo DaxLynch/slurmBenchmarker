@@ -28,6 +28,9 @@ args_dict = vars(args)
 # Define a function to read the data from a series of lammps runs
 # returns a pandas df
 def lammps(test_series): #results is a list of tuples of files and their names.
+    if not os.path.exists(join("benchmark_results", test_series)):
+        raise FileNotFoundError(f"The directory {join('benchmark_results', test_series)} does not exist.")
+
     file_walk = os.walk(join("benchmark_results", test_series))
     data = pd.DataFrame(columns=["Tasks","Nodes","Wall Time","Atoms","Matom-step/s","Comm Pct","CPU Pct"])
     for root, _, files in file_walk:
