@@ -35,7 +35,7 @@ def create_sbatch_script_lammps(nodes, tasks, job_name, directives, environments
 """ 
     if tasks == 1:
         return ret + f"srun lmp -in in.lj -log benchmark_results/{test_run}/log.lammps"
-    elif "scale" in kwargs and kwargs["scale"] == "fixed":
+    elif "size" in kwargs and kwargs["size"] == "fixed":
         return ret + f"srun -n {tasks} lmp -in in.lj -log benchmark_results/{test_run}/log.lammps"
     else:
         return ret + f"srun -n {tasks} lmp -var x {x} -var y {y} -var z {z} -in in.lj -log benchmark_results/{test_run}/log.lammps"
@@ -78,11 +78,11 @@ def main(node_task_tuples):
 if __name__ == "__main__":
     # Define the array of tuples representing (nodes, tasks, kwargs)
     global test_run
-    test_run = "fixedRuns"
+    test_run = "scaledRunsOneNode"
     global kwargs
-    kwargs={"scale" : "fixed"} #These are arguments for specfic programs runs that I don't want to put in each tuple
+    kwargs={"size" : "scaled"} #These are arguments for specfic programs runs that I don't want to put in each tuple
     node_task_tuples = [
-        (1, 1), 
+        (1, 1),
         (1, 2),
         (1, 4),
         (1, 8),
