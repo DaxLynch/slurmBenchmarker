@@ -1,6 +1,5 @@
 import argparse
 import os
-import re
 from os.path import join
 import pandas as pd
 
@@ -19,7 +18,7 @@ import pandas as pd
 # Create the parser
 parser = argparse.ArgumentParser(description='Collates information from a series of test runs of a program on a slurm cluster')
 
-parser.add_argument('--test_series', required=True,type=str, help='Name of a series of test')
+parser.add_argument('--test-series', required=True,type=str, help='Name of a series of test')
 parser.add_argument('--program',     required=True,type=str, help='Program you are benchmarking, options are: lammps')
 
 # Parse arguments
@@ -28,18 +27,39 @@ args_dict = vars(args)
 
 # Define a function to read the data from a series of lammps runs
 # returns a pandas df
-def lammps(file_walk): #results is a list of tuples of files and their names.
+def lammps(test_series): #results is a list of tuples of files and their names.
+    file_walk = os.walk(join("benchmark_results", test_series))
+    data = pd.DataFrame(columns=["Tasks","Nodes","Wall Time","Atoms","Matom-step/s","Comm Pct","CPU Pct"])
     for root, _, files in file_walk:
+        files.remove("log.lammps")
         for file in files:
             if file.endswith(".out"):  # Assuming log files have .out extension
+                file_data = {} #this is very jenky I should have just used re....
+                file_data["Nodes"] = int(file.split("_")[1].split("n")[1])
+                file_data["Tasks"] = int(file.split("_")[2][1:].split(".")[0])
                 result_file_path = os.path.join(root, file)
-                
-    data = None
+                lines = open(result_file_path,'r').readlines()
+                for line in lines:
+                    if "Loop time" in line:
+                        file_data['Wall Time'] = float(line.split()[3])
+                    elif "Created" in line and "atoms" in line:
+                        file_data['Atoms'] = float(line.split()[1])
+                    elif "Matom" in line:
+                        file_data['Matom-step/s'] = float(line.split()[5])
+                    elif "Comm" in line:
+                        file_data['Comm Pct'] = float(line.split()[-1])
+                    elif "CPU use" in line:
+                        file_data['CPU Pct'] = float(line.split()[0][:-1])
+                data.loc[len(data)] = file_data
+        data.set_index("Tasks",inplace=True,drop=True)
+        data.sort_index(inplace=True)
+        data.to_csv(join(root,test_series)+"Results.csv")
+        
     return data 
+
+results = None
 if __name__ == "__main__":
-    print(args_dict)
-    file_walk = os.walk(join("benchmark_results",args_dict["test_series"]))
     if args_dict["program"] == "lammps":
-        results = lammps(file_walk)
+        results = lammps(args_dict["test_series"])
 
 
