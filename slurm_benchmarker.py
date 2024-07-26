@@ -18,14 +18,16 @@ parser = argparse.ArgumentParser(description='Submits a series of test runs of a
 parser.add_argument('--test-series', required=True,type=str, help='Name of a series of test')
 parser.add_argument('--tuples',      required=True,type=str, help='Series of (node,task) tuples for the tests')
 parser.add_argument('--program',     required=True,type=str, help='Program you are benchmarking, options are: lammps')
+parser.add_argument('--machine',     required=True,type=str, help='HPC system you are benchmarking, options are: ec2, perlmutter')
 parser.add_argument('--size',        required=True,type=str, help='Whether or not the problem size is fixed or free', default="fixed")
+parser.add_argument('--slurm-flags', required=False,type=str, help='Machine specfic flags to be passed to srun', default="")
 
 # Parse arguments
 args = parser.parse_args()
 args_dict = vars(args)
 
 # Define a function to create sbatch script content
-def create_sbatch_script_lammps(nodes, tasks, job_name, directives, environments):
+def create_sbatch_script_lammps(nodes, tasks, job_name):
     assert math.log2(tasks) == int(math.log2(tasks)) #Tasks must be power of two, I think this is an arbitrary decsion
     x = 1
     y = 1
@@ -37,7 +39,28 @@ def create_sbatch_script_lammps(nodes, tasks, job_name, directives, environments
         y = int(2**math.ceil(math.log2(tasks)/3)) 
         z = int(2**(math.log2(tasks) - math.log2(x) - math.log2(y))) #Lammps requires being given a x y and z grid to separate the work into
               # This code above breaks the tasks respective sizes.
-    ret =  f"""#!/bin/bash
+    directives = ""
+    environments = ""
+    slurm_flags = args_dict["slurm_flags"]  
+    if args_dict["machine"] == "ec2":
+        directives =  """#SBATCH --exclusive
+"""
+        environments= """#Set environment variables
+export MV2_HOMOGENEOUS_CLUSTER=1
+export MV2_SUPPRESS_JOB_STARTUP_PERFORMANCE_WARNING=1
+
+# Load LAMMPS
+spack load --first lammps       
+"""
+    elif args_dict["machine"] == "perlmutter":
+        directives =  """#SBATCH --image docker:nersc/lammps_all:23.08
+#SBATCH -C cpu
+#SBATCH -A ######
+#SBATCH -q regular
+"""
+        slurm_flags = slurm_flags + "--cpu-bind=cores --module mpich shifter"
+ 
+    ret = f"""!/bin/bash
 #SBATCH --job-name={job_name} 
 #SBATCH --nodes={nodes}
 #SBATCH --ntasks={tasks}
@@ -47,17 +70,16 @@ def create_sbatch_script_lammps(nodes, tasks, job_name, directives, environments
 #SBATCH --error=benchmark_results/{args_dict["test_series"]}/{job_name}.err
 {directives}
 
+export OMP_NUM_THREADS=1
 {environments}
-
-# Execute LAMMPS with srun and capture detailed timing
 
 """ 
     if tasks == 1:
-        return ret + f"srun lmp -in in.lj -log benchmark_results/{args_dict['test_series']}/log.lammps"
+        return ret + f"srun {slurm_flags} lmp -in in.lj -log benchmark_results/{args_dict['test_series']}/log.lammps"
     elif args_dict["size"] == "fixed":
-        return ret + f"srun -n {tasks} lmp -in in.lj -log benchmark_results/{args_dict['test_series']}/log.lammps"
+        return ret + f"srun -n {tasks} {slurm_flags} lmp -in in.lj -log benchmark_results/{args_dict['test_series']}/log.lammps"
     else:
-        return ret + f"srun -n {tasks} lmp -var x {x} -var y {y} -var z {z} -in in.lj -log benchmark_results/{args_dict['test_series']}/log.lammps"
+        return ret + f"srun -n {tasks} {slurm_flags} lmp -var x {x} -var y {y} -var z {z} -in in.lj -log benchmark_results/{args_dict['test_series']}/log.lammps"
 
 # Function to submit the sbatch script
 def submit_sbatch_script(script_content, job_name):
