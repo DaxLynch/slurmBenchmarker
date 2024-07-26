@@ -1,5 +1,4 @@
 *.out
 *.err
 *.sbatch
-machine_specific*.txt
 benchmark_results

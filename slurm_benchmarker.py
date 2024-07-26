@@ -24,8 +24,8 @@ def create_sbatch_script_lammps(nodes, tasks, job_name, directives, environments
 #SBATCH --ntasks={tasks}
 #SBATCH --ntasks-per-node={tasks // nodes}
 #SBATCH -t 0-0:10
-#SBATCH --output=benchmark_results/{job_name}.out
-#SBATCH --error=benchmark_results/{job_name}.err
+#SBATCH --output=benchmark_results/{test_run}/{job_name}.out
+#SBATCH --error=benchmark_results/{test_run}/{job_name}.err
 {directives}
 
 {environments}
@@ -34,7 +34,7 @@ def create_sbatch_script_lammps(nodes, tasks, job_name, directives, environments
 
 """ 
     if tasks == 1:
-        return ret + "srun lmp -in in.lj -log benchmark_results/{test_run}/log.lammps"
+        return ret + f"srun lmp -in in.lj -log benchmark_results/{test_run}/log.lammps"
     elif "scale" in kwargs and kwargs["scale"] == "fixed":
         return ret + f"srun -n {tasks} lmp -in in.lj -log benchmark_results/{test_run}/log.lammps"
     else:
@@ -52,8 +52,8 @@ def main(node_task_tuples):
     # Directory name
     dir_name = 'benchmark_results'
     if os.path.exists(dir_name):
-        if os.path.exists(test_run):
-            shutil.rmtree(test_run)
+        if os.path.exists(dir_name+"/"+test_run):
+            shutil.rmtree(dir_name+"/"+test_run) 
             # Create the directory
             os.makedirs(dir_name+"/"+test_run) 
         else: 
