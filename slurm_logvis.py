@@ -97,9 +97,9 @@ def lammps(test_series): #results is a list of tuples of files and their names.
 
 results = None
 if __name__ == "__main__":
-    if not os.path.exists(join("benchmark_results", args_dict['test_series'])):
-        raise FileNotFoundError(f"The directory {join('benchmark_results', args_dict['test_series'])} does not exist.")
+    if not os.path.exists(join("benchmark_results", args_dict['test_series']+args_dict['scaling'])):
+        raise FileNotFoundError(f"The directory {join('benchmark_results', args_dict['test_series']+args_dict['scaling'])} does not exist.")
     if args_dict["program"] == "lammps":
-        results = lammps(args_dict["test_series"])
+        results = lammps(args_dict["test_series"]+args_dict["scaling"])
 
 
