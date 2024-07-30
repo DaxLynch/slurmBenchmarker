@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 args_dict = {}
 
 def lammps_graph(file_path_to_results_csv):
-    data=pd.read_csv(file_path_to_results_csv)
+    data=pd.read_csv(file_path_to_results_csv, index_col="Tasks")
     path_to_results = file_path_to_results_csv[:file_path_to_results_csv.find(".csv")]
     
     grouped = data.groupby('Nodes')
