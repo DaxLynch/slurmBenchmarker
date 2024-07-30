@@ -79,6 +79,7 @@ def lammps(test_series): #results is a list of tuples of files and their names.
         plt.grid(True)
         plt.savefig(f"{test_series}ParaEff{args_dict['scaling']}.png")
         plt.show()
+        plt.clf()
 
         # Plot each group's percent time in communication with a different color
         for name, group in grouped:
@@ -92,6 +93,7 @@ def lammps(test_series): #results is a list of tuples of files and their names.
         plt.grid(True)
         plt.savefig(f"{test_series}CommPct{args_dict['scaling']}.png")
         plt.show() 
+        plt.clf()
                 
     return data 
 
