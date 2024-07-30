@@ -3,3 +3,5 @@
 *.sbatch
 benchmark_results
 machine*
+*.png
+*.csv
