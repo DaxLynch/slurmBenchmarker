@@ -2,7 +2,7 @@ import argparse
 import os
 from os.path import join
 import pandas as pd
-
+import matplotlib.pyplot as plt
 
 #the way this should work is it should get called after your slurm jobs have finished.
 #Given the name of a run it collates all information for that job type into python data
@@ -66,7 +66,7 @@ def lammps(test_series): #results is a list of tuples of files and their names.
         data.to_csv(join(root,test_series)+"Results.csv")
    
     if args_dict["graph"]:
-        grouped = df.groupby('Nodes')
+        grouped = data.groupby('Nodes')
         # Plot each group with a different color
         for name, group in grouped:
             plt.plot(group.index, group['Parallel Eff']*100, marker='o', linestyle='-', label=f'{name} Nodes')
@@ -77,7 +77,7 @@ def lammps(test_series): #results is a list of tuples of files and their names.
         plt.title('Parallel Efficiency vs Number of Tasks for Different Node Configurations')
         plt.legend(title='Number of Nodes')
         plt.grid(True)
-        plt.savefig(f"{test_series}ParaEff{args_dict["scaling"]}",format="png")
+        plt.savefig(f"{test_series}ParaEff{args_dict['scaling']}.png")
         plt.show()
 
         # Plot each group's percent time in communication with a different color
@@ -90,7 +90,7 @@ def lammps(test_series): #results is a list of tuples of files and their names.
         plt.title('Percent Time in MPI Comm vs Number of Tasks for Different Node Configurations')
         plt.legend(title='Number of Nodes')
         plt.grid(True)
-        plt.savefig(f"{test_series}CommPct{args_dict["scaling"]}",format="png")
+        plt.savefig(f"{test_series}CommPct{args_dict['scaling']}.png")
         plt.show() 
                 
     return data 
@@ -98,7 +98,7 @@ def lammps(test_series): #results is a list of tuples of files and their names.
 results = None
 if __name__ == "__main__":
     if not os.path.exists(join("benchmark_results", args_dict['test_series'])):
-        raise FileNotFoundError(f"The directory {join('benchmark_results', test_series)} does not exist.")
+        raise FileNotFoundError(f"The directory {join('benchmark_results', args_dict['test_series'])} does not exist.")
     if args_dict["program"] == "lammps":
         results = lammps(args_dict["test_series"])
 
