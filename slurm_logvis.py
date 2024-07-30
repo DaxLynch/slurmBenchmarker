@@ -20,6 +20,8 @@ parser = argparse.ArgumentParser(description='Collates information from a series
 
 parser.add_argument('--test-series', required=True,type=str, help='Name of a series of test')
 parser.add_argument('--program',     required=True,type=str, help='Program you are benchmarking, options are: lammps')
+parser.add_argument('--scaling',        required=True,type=str, help='Whether or not the problem scaling is fixed or free', default="fixed")
+parser.add_argument('--graph',       required=False,type=bool, help='Whether to produce relevant graphs', default=False)
 
 # Parse arguments
 args = parser.parse_args()
@@ -56,8 +58,41 @@ def lammps(test_series): #results is a list of tuples of files and their names.
                 data.loc[len(data)] = file_data
         data.set_index("Tasks",inplace=True,drop=True)
         data.sort_index(inplace=True)
+        SingleProcTime = data.at[1,"Nodes"] #ASSUMING THERE IS A 1 NODE 1 TASK
+        if args_dict["scaling"] == "fixed":
+            data["Parallel Eff"] = SingleProcTime/(data["Wall Time"]*data.index)
+        else:
+            data["Parallel Eff"] = SingleProcTime/data["Wall Time"]
         data.to_csv(join(root,test_series)+"Results.csv")
-        
+   
+    if args_dict["graph"]:
+        grouped = df.groupby('Nodes')
+        # Plot each group with a different color
+        for name, group in grouped:
+            plt.plot(group.index, group['Parallel Eff']*100, marker='o', linestyle='-', label=f'{name} Nodes')
+
+        plt.xlabel('Number of Tasks')
+        plt.ylabel('Parallel Efficiency (%)')
+        plt.ylim(0,100)
+        plt.title('Parallel Efficiency vs Number of Tasks for Different Node Configurations')
+        plt.legend(title='Number of Nodes')
+        plt.grid(True)
+        plt.savefig(f"{test_series}ParaEff{args_dict["scaling"]}",format="png")
+        plt.show()
+
+        # Plot each group's percent time in communication with a different color
+        for name, group in grouped:
+            plt.plot(group.index, group['Comm Pct'], marker='o', linestyle='-', label=f'{name} Nodes')
+
+        plt.xlabel('Number of Tasks')
+        plt.ylabel('Percent Time in MPI Comm')
+        plt.ylim(0,100)
+        plt.title('Percent Time in MPI Comm vs Number of Tasks for Different Node Configurations')
+        plt.legend(title='Number of Nodes')
+        plt.grid(True)
+        plt.savefig(f"{test_series}CommPct{args_dict["scaling"]}",format="png")
+        plt.show() 
+                
     return data 
 
 results = None
