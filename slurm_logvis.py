@@ -23,7 +23,7 @@ def lammps_graph(file_path_to_results_csv):
     grouped = data.groupby('Nodes')
     # Plot each group with a different color
     for name, group in grouped:
-        plt.plot(group.index, group['Parallel Eff']*100, marker='o', linestyle='-', label=f'{name} Nodes')
+        plt.plot(group.index, group['Parallel Eff'], marker='o', linestyle='-', label=f'{name} Nodes')
 
     plt.xlabel('Number of Tasks')
     plt.ylabel('Parallel Efficiency (%)')
