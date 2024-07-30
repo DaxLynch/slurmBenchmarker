@@ -15,25 +15,48 @@ import matplotlib.pyplot as plt
 #Future: Wanting to benchmark various hpc programs
 
 
-# Create the parser
-parser = argparse.ArgumentParser(description='Collates information from a series of test runs of a program on a slurm cluster')
+args_dict = {}
+# Define a function to graph lammps data from a csv
+def lammps_graph(file_path):
+    test_series = file_path[:file_path.find(".csv")]
+    data = pd.read_csv(file_path,index_col="Tasks")
+    grouped = data.groupby('Nodes')
+    # Plot each group with a different color
+    for name, group in grouped:
+        plt.plot(group.index, group['Parallel Eff']*100, marker='o', linestyle='-', label=f'{name} Nodes')
 
-parser.add_argument('--test-series', required=True,type=str, help='Name of a series of test')
-parser.add_argument('--program',     required=True,type=str, help='Program you are benchmarking, options are: lammps')
-parser.add_argument('--scaling',        required=True,type=str, help='Whether or not the problem scaling is fixed or free', default="fixed")
-parser.add_argument('--graph',       required=False,type=bool, help='Whether to produce relevant graphs', default=False)
+    plt.xlabel('Number of Tasks')
+    plt.ylabel('Parallel Efficiency (%)')
+    plt.ylim(0,100)
+    plt.title('Parallel Efficiency vs Number of Tasks for Different Node Configurations')
+    plt.legend(title='Number of Nodes')
+    plt.grid(True)
+    plt.savefig(f"{test_series}ParaEff.png")
+    plt.clf()
+    plt.show()
 
-# Parse arguments
-args = parser.parse_args()
-args_dict = vars(args)
+    # Plot each group's percent time in communication with a different color
+    for name, group in grouped:
+        plt.plot(group.index, group['Comm Pct'], marker='o', linestyle='-', label=f'{name} Nodes')
+
+    plt.xlabel('Number of Tasks')
+    plt.ylabel('Percent Time in MPI Comm')
+    plt.ylim(0,100)
+    plt.title('Percent Time in MPI Comm vs Number of Tasks for Different Node Configurations')
+    plt.legend(title='Number of Nodes')
+    plt.grid(True)
+    plt.savefig(f"{test_series}CommPct.png")
+    plt.clf()
+    plt.show() 
+    
 
 # Define a function to read the data from a series of lammps runs
 # returns a pandas df
 def lammps(test_series): #results is a list of tuples of files and their names.
-    if not os.path.exists(join("benchmark_results", test_series)):
-        raise FileNotFoundError(f"The directory {join('benchmark_results', test_series)} does not exist.")
+    if not os.path.exists(join("benchmark_results", test_series_directory)):
+        raise FileNotFoundError(f"The directory {join('benchmark_results', test_series_directory)} does not exist.")
 
-    file_walk = os.walk(join("benchmark_results", test_series))
+    file_walk = os.walk(join("benchmark_results", test_series_directory))
     data = pd.DataFrame(columns=["Tasks","Nodes","Wall Time","Atoms","Matom-step/s","Comm Pct","CPU Pct"])
     for root, _, files in file_walk:
         files.remove("log.lammps")
@@ -63,43 +86,32 @@ def lammps(test_series): #results is a list of tuples of files and their names.
             data["Parallel Eff"] = SingleProcTime/(data["Wall Time"]*data.index)
         else:
             data["Parallel Eff"] = SingleProcTime/data["Wall Time"]
-        data.to_csv(join(root,test_series)+"Results.csv")
+        data.to_csv(join(root,test_series_directory)+"Results.csv")
    
     if args_dict["graph"]:
-        grouped = data.groupby('Nodes')
-        # Plot each group with a different color
-        for name, group in grouped:
-            plt.plot(group.index, group['Parallel Eff']*100, marker='o', linestyle='-', label=f'{name} Nodes')
-
-        plt.xlabel('Number of Tasks')
-        plt.ylabel('Parallel Efficiency (%)')
-        plt.ylim(0,100)
-        plt.title('Parallel Efficiency vs Number of Tasks for Different Node Configurations')
-        plt.legend(title='Number of Nodes')
-        plt.grid(True)
-        plt.savefig(f"{test_series}ParaEff{args_dict['scaling']}.png")
-        plt.show()
-
-        # Plot each group's percent time in communication with a different color
-        for name, group in grouped:
-            plt.plot(group.index, group['Comm Pct'], marker='o', linestyle='-', label=f'{name} Nodes')
-
-        plt.xlabel('Number of Tasks')
-        plt.ylabel('Percent Time in MPI Comm')
-        plt.ylim(0,100)
-        plt.title('Percent Time in MPI Comm vs Number of Tasks for Different Node Configurations')
-        plt.legend(title='Number of Nodes')
-        plt.grid(True)
-        plt.savefig(f"{test_series}CommPct{args_dict['scaling']}.png")
-        plt.show() 
-                
+        lammps_graph(join("benchmark_results/",test_series_directory,test_series_directory+"Results.csv"))       
     return data 
+
 
 results = None
 if __name__ == "__main__":
-    if not os.path.exists(join("benchmark_results", args_dict['test_series']+args_dict['scaling'])):
-        raise FileNotFoundError(f"The directory {join('benchmark_results', args_dict['test_series']+args_dict['scaling'])} does not exist.")
+    # Create the parser
+    parser = argparse.ArgumentParser(description='Collates information from a series of test runs of a program on a slurm cluster')
+
+    parser.add_argument('--test-series', required=True,type=str, help='Name of a series of test')
+    parser.add_argument('--program',     required=True,type=str, help='Program you are benchmarking, options are: lammps')
+    parser.add_argument('--scaling',        required=True,type=str, help='Whether or not the problem scaling is fixed or free', default="fixed")
+    parser.add_argument('--graph',       required=False,type=bool, help='Whether to produce relevant graphs', default=False)
+
+    # Parse arguments
+    args = parser.parse_args()
+    args_dict = vars(args)
+    test_series_directory = args_dict['test_series']+args_dict['scaling']
+
+    if not os.path.exists(join("benchmark_results", test_series_directory)):
+        raise FileNotFoundError(f"The directory {join('benchmark_results', test_series_directory)} does not exist.")
     if args_dict["program"] == "lammps":
-        results = lammps(args_dict["test_series"]+args_dict["scaling"])
+        results = lammps(test_series_directory)
 
-
+else:
+    print("Make sure to set args_dict['scaling'],['test_series'],['graph']")
