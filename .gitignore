@@ -5,3 +5,4 @@ benchmark_results
 machine*
 *.png
 *.csv
+__pycache__
