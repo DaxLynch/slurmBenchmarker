@@ -48,6 +48,7 @@ def create_sbatch_script_lammps(nodes, tasks, job_name):
         length = "short.lj"
     else:
         length = "long.lj"
+    test_name_with_modifiers = args_dict['test_series']+args_dict['scaling']+args_dict['length'] 
     if args_dict["machine"] == "ec2":
         directives =  """#SBATCH --exclusive
 """
@@ -71,8 +72,8 @@ spack load --first lammps
 #SBATCH --nodes={nodes}
 #SBATCH --ntasks={tasks}
 #SBATCH -t 0-0:10
-#SBATCH --output=benchmark_results/{args_dict['test_series']+args_dict['scaling']}/{job_name}.out
-#SBATCH --error=benchmark_results/{args_dict['test_series']+args_dict['scaling']}/{job_name}.err
+#SBATCH --output=benchmark_results/{test_name_with_modifiers}/{job_name}.out
+#SBATCH --error=benchmark_results/{test_name_with_modifiers}/{job_name}.err
 {directives}
 
 export OMP_NUM_THREADS=1
@@ -80,21 +81,22 @@ export OMP_NUM_THREADS=1
 
 """ 
     if tasks == 1:
-        return ret + f"srun {slurm_flags} lmp -in {length} -log benchmark_results/{args_dict['test_series']+args_dict['scaling']}/log.lammps"
+        return ret + f"srun {slurm_flags} lmp -in {length} -log benchmark_results/{test_name_with_modifiers}/log.lammps"
     elif args_dict["scaling"] == "fixed":
-        return ret + f"srun -n {tasks} {slurm_flags} lmp -in {length} -log benchmark_results/{args_dict['test_series']+args_dict['scaling']}/log.lammps"
+        return ret + f"srun -n {tasks} {slurm_flags} lmp -in {length} -log benchmark_results/{test_name_with_modifiers}/log.lammps"
     else:
-        return ret + f"srun -n {tasks} {slurm_flags} lmp -var x {x} -var y {y} -var z {z} -in {length} -log benchmark_results/{args_dict['test_series']+args_dict['scaling']}/log.lammps"
+        return ret + f"srun -n {tasks} {slurm_flags} lmp -var x {x} -var y {y} -var z {z} -in {length} -log benchmark_results/{test_name_with_modifiers}/log.lammps"
 
 # Function to submit the sbatch script
 def submit_sbatch_script(script_content, job_name):
-    script_file = f"benchmark_results/{args_dict['test_series']+args_dict['scaling']}/{job_name}.sbatch"
+    test_name_with_modifiers = args_dict['test_series']+args_dict['scaling']+args_dict['length'] 
+    script_file = f"benchmark_results/{test_name_with_modifiers}/{job_name}.sbatch"
     with open(script_file, 'w') as f:
         f.write(script_content)
     subprocess.run(['sbatch', script_file])
 
 def ensure_directories():
-    test_run = args_dict['test_series']+args_dict['scaling']
+    test_run = args_dict['test_series']+args_dict['scaling']+args_dict['length'] 
     #This makes the respective directories if they aren't made
     dir_name = 'benchmark_results'
     if os.path.exists(dir_name):
