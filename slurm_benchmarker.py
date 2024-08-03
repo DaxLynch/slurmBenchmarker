@@ -21,6 +21,7 @@ parser.add_argument('--program',     required=True,type=str, help='Program you a
 parser.add_argument('--machine',     required=True,type=str, help='HPC system you are benchmarking, options are: ec2, perlmutter')
 parser.add_argument('--scaling',        required=True,type=str, help='Whether or not the problem scaling is fixed or free', default="fixed")
 parser.add_argument('--slurm-flags', required=False,type=str, help='Machine specfic flags to be passed to srun', default="")
+parser.add_argument('--length', required=True,type=str, help='Length of test to run, options are: short, long', default="short")
 
 # Parse arguments
 args = parser.parse_args()
@@ -42,6 +43,11 @@ def create_sbatch_script_lammps(nodes, tasks, job_name):
     directives = ""
     environments = ""
     slurm_flags = args_dict["slurm_flags"]  
+    length = ""
+    if args_dict["length"] == "short":
+        length = "short.lj"
+    else:
+        length = "long.lj"
     if args_dict["machine"] == "ec2":
         directives =  """#SBATCH --exclusive
 """
@@ -74,11 +80,11 @@ export OMP_NUM_THREADS=1
 
 """ 
     if tasks == 1:
-        return ret + f"srun {slurm_flags} lmp -in in.lj -log benchmark_results/{args_dict['test_series']+args_dict['scaling']}/log.lammps"
+        return ret + f"srun {slurm_flags} lmp -in {length} -log benchmark_results/{args_dict['test_series']+args_dict['scaling']}/log.lammps"
     elif args_dict["scaling"] == "fixed":
-        return ret + f"srun -n {tasks} {slurm_flags} lmp -in in.lj -log benchmark_results/{args_dict['test_series']+args_dict['scaling']}/log.lammps"
+        return ret + f"srun -n {tasks} {slurm_flags} lmp -in {length} -log benchmark_results/{args_dict['test_series']+args_dict['scaling']}/log.lammps"
     else:
-        return ret + f"srun -n {tasks} {slurm_flags} lmp -var x {x} -var y {y} -var z {z} -in in.lj -log benchmark_results/{args_dict['test_series']+args_dict['scaling']}/log.lammps"
+        return ret + f"srun -n {tasks} {slurm_flags} lmp -var x {x} -var y {y} -var z {z} -in {length} -log benchmark_results/{args_dict['test_series']+args_dict['scaling']}/log.lammps"
 
 # Function to submit the sbatch script
 def submit_sbatch_script(script_content, job_name):
