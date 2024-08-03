@@ -19,9 +19,9 @@ parser.add_argument('--test-series', required=True,type=str, help='Name of a ser
 parser.add_argument('--tuples',      required=True,type=str, help='Series of (node,task) tuples for the tests')
 parser.add_argument('--program',     required=True,type=str, help='Program you are benchmarking, options are: lammps')
 parser.add_argument('--machine',     required=True,type=str, help='HPC system you are benchmarking, options are: ec2, perlmutter')
-parser.add_argument('--scaling',        required=True,type=str, help='Whether or not the problem scaling is fixed or free', default="fixed")
+parser.add_argument('--scaling',     required=True,type=str, help='Whether or not the problem scaling is fixed or free', default="fixed")
 parser.add_argument('--slurm-flags', required=False,type=str, help='Machine specfic flags to be passed to srun', default="")
-parser.add_argument('--length', required=True,type=str, help='Length of test to run, options are: short, long', default="short")
+parser.add_argument('--length',      required=True,type=str, help='Length of test to run, options are: short, long', default="short")
 
 # Parse arguments
 args = parser.parse_args()
