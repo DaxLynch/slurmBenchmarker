@@ -22,14 +22,17 @@ parser.add_argument('--machine',     required=True,type=str, help='HPC system yo
 parser.add_argument('--scaling',     required=True,type=str, help='Whether or not the problem scaling is fixed or free', default="fixed")
 parser.add_argument('--slurm-flags', required=False,type=str, help='Machine specfic flags to be passed to srun', default="")
 parser.add_argument('--length',      required=True,type=str, help='Length of test to run, options are: short, long', default="short")
+parser.add_argument('--tau',         required=False,type=str, help='Whether or not to profile with tau, options are false, true', default="false")
 
 # Parse arguments
 args = parser.parse_args()
 args_dict = vars(args)
+for key in args_dict.keys(): #Makes every arg lowercase for string comparison
+    args_dict[key] = args_dict[key].lower()
 
 # Define a function to create sbatch script content
 def create_sbatch_script_lammps(nodes, tasks, job_name):
-    assert math.log2(tasks) == int(math.log2(tasks)) #Tasks must be power of two, I think this is an arbitrary decsion
+    assert math.log2(tasks) == int(math.log2(tasks)) #I decided task size should be in powers of two, for ease of testing.
     x = 1
     y = 1
     z = 1
@@ -39,17 +42,18 @@ def create_sbatch_script_lammps(nodes, tasks, job_name):
         x = int(2**math.floor(math.log2(tasks)/3))
         y = int(2**math.ceil(math.log2(tasks)/3)) 
         z = int(2**(math.log2(tasks) - math.log2(x) - math.log2(y))) #Lammps requires being given a x y and z grid to separate the work into
-              # This code above breaks the tasks respective sizes.
+              # This code above breaks the number of tasks, say 256, into an x y z cube of 4 * 8 * 8 
+
     directives = ""
     environments = ""
     slurm_flags = args_dict["slurm_flags"]  
-    length = ""
-    if args_dict["length"] == "short":
-        length = "short.lj"
-    else:
-        length = "long.lj"
-    test_name_with_modifiers = args_dict['test_series']+args_dict['scaling']+args_dict['length'] 
-    if args_dict["machine"] == "ec2":
+    length = f"{args_dict['length'].lj}"
+
+    test_name_with_modifiers = args_dict['test_series']+args_dict['scaling']+args_dict['length']
+    #if args_dict['tau'] == "true":
+        
+    if args_dict["machine"] == "ec2":          #The below are the machine specific directives and environment variables
+                                               #required for slurm
         directives =  """#SBATCH --exclusive
 """
         environments= """#Set environment variables
@@ -62,10 +66,10 @@ spack load --first lammps
     elif args_dict["machine"] == "perlmutter":
         directives =  """#SBATCH --image docker:nersc/lammps_all:23.08
 #SBATCH -C cpu
-#SBATCH -A ###CHANGE ME TO YOUR PERLMUTTER ACCOUNT NUMBER###
+#SBATCH -A 
 #SBATCH -q regular
 """
-        slurm_flags = slurm_flags + "--cpu-bind=cores --module mpich shifter"
+        slurm_flags = slurm_flags + "--cpu-bind=cores --module mpich shifter"  #Specific flags for slurm
  
     ret = f"""#!/bin/bash
 #SBATCH --job-name={job_name} 
@@ -95,9 +99,9 @@ def submit_sbatch_script(script_content, job_name):
         f.write(script_content)
     subprocess.run(['sbatch', script_file])
 
-def ensure_directories():
+#Ensures that the directory required for the test you want to run exist, and if not, creates it
+def ensure_directories():      
     test_run = args_dict['test_series']+args_dict['scaling']+args_dict['length'] 
-    #This makes the respective directories if they aren't made
     dir_name = 'benchmark_results'
     if os.path.exists(dir_name):
         if os.path.exists(join(dir_name,test_run)): #Overwrite if this is the second time
@@ -108,7 +112,7 @@ def ensure_directories():
         os.makedirs(dir_name) 
         os.makedirs(join(dir_name,test_run))     
 
-def open_tuple_file(file_name):
+def open_tuple_file(file_name): #Returns a list of tuples, with each tuple representing (# of Nodes, # of tasks) for each slurm job
     tuple_lines = open(file_name,'r').readlines()
     ret = []
     for node_task in tuple_lines:
