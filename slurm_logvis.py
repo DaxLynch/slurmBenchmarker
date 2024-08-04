@@ -114,7 +114,3 @@ if __name__ == "__main__":
         results = lammps(args_dict["test_series"]+args_dict["scaling"])
 
 
-import argparse
-import os
-from os.path import join
-import pandas as pd
