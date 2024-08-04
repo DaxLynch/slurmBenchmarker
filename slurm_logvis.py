@@ -26,6 +26,7 @@ def lammps_graph(file_path_to_results_csv):
         plt.plot(group.index, group['Parallel Eff'], marker='o', linestyle='-', label=f'{name} Nodes')
 
     plt.xlabel('Number of Tasks')
+    plt.xscale("log", base=2);
     plt.ylabel('Parallel Efficiency (%)')
     plt.ylim(0,100)
     plt.title('Parallel Efficiency vs Number of Tasks for Different Node Configurations')
@@ -40,6 +41,7 @@ def lammps_graph(file_path_to_results_csv):
         plt.plot(group.index, group['Comm Pct'], marker='o', linestyle='-', label=f'{name} Nodes')
 
     plt.xlabel('Number of Tasks')
+    plt.xscale("log", base=2);
     plt.ylabel('Percent Time in MPI Comm')
     plt.ylim(0,100)
     plt.title('Percent Time in MPI Comm vs Number of Tasks for Different Node Configurations')
@@ -102,15 +104,15 @@ if __name__ == "__main__":
     parser.add_argument('--program',     required=True,type=str, help='Program you are benchmarking, options are: lammps')
     parser.add_argument('--scaling',     required=True,type=str, help='Whether or not the problem scaling is fixed or free', default="fixed")
     parser.add_argument('--graph',       required=False,type=str, help='Whether to produce relevant graphs, options are: True, False', default="False")
-
+    parser.add_argument('--length',      required=True,type=str, help='Length of test to run, options are: short, long', default="short")
     # Parse arguments
     args = parser.parse_args()
     args_dict = vars(args)
-    test_series_name = args_dict['test_series']+args_dict['scaling']
+    test_series_name = args_dict['test_series']+args_dict['scaling']+args_dict['length']
     test_series_directory = join("benchmark_results",test_series_name)
     if not os.path.exists(test_series_directory):
         raise FileNotFoundError(f"The directory {test_series_directory} does not exist.")
     if args_dict["program"] == "lammps":
-        results = lammps(args_dict["test_series"]+args_dict["scaling"])
+        results = lammps(test_series_name)
 
 
