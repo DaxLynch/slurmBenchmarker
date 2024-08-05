@@ -28,7 +28,9 @@ parser.add_argument('--tau',         required=False,type=str, help='Whether or n
 args = parser.parse_args()
 args_dict = vars(args)
 for key in args_dict.keys(): #Makes every arg lowercase for string comparison
-    args_dict[key] = args_dict[key].lower()
+    if key != "test_series":
+        args_dict[key] = args_dict[key].lower()
+
 
 # Define a function to create sbatch script content
 def create_sbatch_script_lammps(nodes, tasks, job_name):
