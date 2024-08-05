@@ -89,7 +89,7 @@ def lammps(test_series_name): #results is a list of tuples of files and their na
         else:
             data["Parallel Eff"] = SingleProcTime/data["Wall Time"]*100
         data.to_csv(join(test_series_directory,test_series_name)+"Results.csv")
-    if args_dict["graph"] == "True":
+    if args_dict["graph"] == "true":
         lammps_graph(join(test_series_directory,test_series_name)+"Results.csv")
 
     return data 
@@ -108,6 +108,11 @@ if __name__ == "__main__":
     # Parse arguments
     args = parser.parse_args()
     args_dict = vars(args)
+    for key in args_dict.keys(): #Makes every arg lowercase for string comparison
+        if key != "test_series":
+            args_dict[key] = args_dict[key].lower()
+
+
     test_series_name = args_dict['test_series']+args_dict['scaling']+args_dict['length']
     test_series_directory = join("benchmark_results",test_series_name)
     if not os.path.exists(test_series_directory):
