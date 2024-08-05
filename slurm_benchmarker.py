@@ -15,14 +15,14 @@ import shutil
 # Create the parser
 parser = argparse.ArgumentParser(description='Submits a series of test runs of a program on a slurm cluster')
 
-parser.add_argument('--test-series', required=True,type=str, help='Name of a series of test')
-parser.add_argument('--tuples',      required=True,type=str, help='Series of (node,task) tuples for the tests')
-parser.add_argument('--program',     required=True,type=str, help='Program you are benchmarking, options are: lammps')
-parser.add_argument('--machine',     required=True,type=str, help='HPC system you are benchmarking, options are: ec2, perlmutter')
-parser.add_argument('--scaling',     required=True,type=str, help='Whether or not the problem scaling is fixed or free', default="fixed")
-parser.add_argument('--slurm-flags', required=False,type=str, help='Machine specfic flags to be passed to srun', default="")
-parser.add_argument('--length',      required=True,type=str, help='Length of test to run, options are: short, long', default="short")
-parser.add_argument('--tau',         required=False,type=str, help='Whether or not to profile with tau, options are false, true', default="false")
+parser.add_argument('--test-series', required=True,  type=str, help='Name of a series of test')
+parser.add_argument('--tuples',      required=True,  type=str, help='Series of (node,task) tuples for the tests')
+parser.add_argument('--program',     required=True,  type=str, help='Program you are benchmarking, options are: lammps')
+parser.add_argument('--machine',     required=True,  type=str, help='HPC system you are benchmarking, options are: ec2, perlmutter')
+parser.add_argument('--scaling',     required=False, type=str, help='Whether or not the problem scaling is fixed or free', default="free")
+parser.add_argument('--slurm-flags', required=False, type=str, help='Machine specfic flags to be passed to srun', default="")
+parser.add_argument('--length',      required=False, type=str, help='Length of test to run, options are: short, long', default="short")
+parser.add_argument('--tau',         required=False, type=str, help='Whether or not to profile with tau, options are false, true', default="false")
 
 # Parse arguments
 args = parser.parse_args()
@@ -48,29 +48,35 @@ def create_sbatch_script_lammps(nodes, tasks, job_name):
 
     directives = ""
     environments = ""
+    tau = ""
     slurm_flags = args_dict["slurm_flags"]  
-    length = f"{args_dict['length'].lj}"
+    length = f"{args_dict['length']}.lj"
 
     test_name_with_modifiers = args_dict['test_series']+args_dict['scaling']+args_dict['length']
-    #if args_dict['tau'] == "true":
-        
+
+    if args_dict['tau'] == "true":
+        tau = tau + f"""export PROFILEDIR=benchmark_results/{test_name_with_modifiers}/
+export TAU_COMM_MATRIX=1
+export TAU_PROFILE_FORMAT=merged"""
+        slurm_flags = "tau_exec " + slurm_flags 
+
     if args_dict["machine"] == "ec2":          #The below are the machine specific directives and environment variables
                                                #required for slurm
-        directives =  """#SBATCH --exclusive
-"""
+        directives =  """#SBATCH --exclusive"""
         environments= """#Set environment variables
 export MV2_HOMOGENEOUS_CLUSTER=1
 export MV2_SUPPRESS_JOB_STARTUP_PERFORMANCE_WARNING=1
-
 # Load LAMMPS
-spack load --first lammps       
-"""
-    elif args_dict["machine"] == "perlmutter":
-        directives =  """#SBATCH --image docker:nersc/lammps_all:23.08
+spack load --first lammps"""
+    elif args_dict["machine"] == "perlmutter":  #Perlmutter specific directives
+        directives =  """#SBATCH --image docker:nersc/lammps_all:23.08  
 #SBATCH -C cpu
 #SBATCH -A 
-#SBATCH -q regular
-"""
+#SBATCH -q regular"""
+        if args_dict['tau'] == "true": #How to load tau on perlmutter
+            tau = tau + f"""module load e4s
+spack env activate gcc
+spack load tau"""
         slurm_flags = slurm_flags + "--cpu-bind=cores --module mpich shifter"  #Specific flags for slurm
  
     ret = f"""#!/bin/bash
@@ -81,11 +87,11 @@ spack load --first lammps
 #SBATCH --output=benchmark_results/{test_name_with_modifiers}/{job_name}.out
 #SBATCH --error=benchmark_results/{test_name_with_modifiers}/{job_name}.err
 {directives}
-
 export OMP_NUM_THREADS=1
 {environments}
-
+{tau}
 """ 
+    
     if tasks == 1:
         return ret + f"srun {slurm_flags} lmp -in {length} -log benchmark_results/{test_name_with_modifiers}/log.lammps"
     elif args_dict["scaling"] == "fixed":
