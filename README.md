@@ -13,8 +13,8 @@ Once these have all returned, call slurm_logviz with similar commands.
 for example:
 with the given node_tuples.txt,
 
-python slurm_benchmarker.py --test-series=TwoNodesRun --tuples=node_tuples.txt --program=lammps --scaling=free --machine=perlmutter
-python -i slurm_logvis.py --test-series=OneNodeRun --program=lammps --scaling=fixed --graph=False
+python slurm_benchmarker.py --test-series=NameOfTest --tuples=node_tuples.txt --program=lammps --scaling=free --machine=perlmutter --length=short
+python -i slurm_logvis.py --test-series=OneNodeRun --program=lammps --scaling=fixed --graph=False --length=short
 
 Note do not put senistive data like account numbers in the machine specific directives
 
