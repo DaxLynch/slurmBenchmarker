@@ -10,28 +10,7 @@ from os.path import join
 import math
 import shutil
 
-
-
-
-# Create the parser
-parser = argparse.ArgumentParser(description='Submits a series of test runs of a program on a slurm cluster')
-
-#parser.add_argument('--test-series', required=True,  type=str, help='Name of a series of test')
-#parser.add_argument('--program',     required=True,  type=str, help='Program you are benchmarking, options are: lammps')
-parser.add_argument('--machine',     required=True,  type=str, help='HPC system you are benchmarking, options are: ec2, perlmutter')
-parser.add_argument('--scaling',     required=False, type=str, help='Whether or not the problem scaling is fixed or free', default="free")
-parser.add_argument('--tuples',      required=False, type=str, help='Series of (node,task) tuples for the tests', default="node_tuples.txt")
-parser.add_argument('--slurm-flags', required=False, type=str, help='Machine specfic flags to be passed to srun', default="")
-parser.add_argument('--length',      required=False, type=str, help='Length of test to run, options are: short, long', default="short")
-parser.add_argument('--tau',         required=False, type=str, help='Whether or not to profile with tau, options are false, true', default="false")
-
-# Parse arguments
-args = parser.parse_args()
-args_dict = vars(args)
-for key in args_dict.keys(): #Makes every arg lowercase for string comparison
-    if key != "test_series":
-        args_dict[key] = args_dict[key].lower()
-
+args_dict = {}
 
 # Define a function to create sbatch script content
 def create_sbatch_script_lammps(test_number, nodes, tasks, job_name):
@@ -87,7 +66,6 @@ export OMP_NUM_THREADS=1
     else:
         return ret + f"srun -n {tasks} {slurm_flags} lmp -var x {x} -var y {y} -var z {z} -in {length} -log benchmark_results/{test_number}/{job_name}_lammps.log"
 
-
 # Function to submit the sbatch script
 def submit_sbatch_script(test_number, script_content, job_name):
     script_file = f"benchmark_results/{test_number}/{job_name}.sbatch"
@@ -104,17 +82,16 @@ def ensure_directories(test_number):
         os.makedirs(dir_name) 
         os.makedirs(join(dir_name,test_number))     
 
-
 #Ensures that the csv is created and well formed
 def ensure_csv(csv_path):
     results_df = None
+    ensure_csv.column_names = ["Test Number", "OS", "Nodes", "Tasks","Lammps PE","Lammps PCTComm"]
+    column_names = ensure_csv.column_names
     if os.path.exists(csv_path):
         results_df = pd.read_csv(csv_path, index_col="Test Number")
     else:
-        column_names = ["Test Number", "OS", "Nodes", "Tasks","Lammps PE","Lammps PCTComm"]
         results_df = pd.DataFrame(columns=column_names).set_index("Test Number")      
     return results_df
-
 
 #Returns a list of tuples, with each tuple representing (# of Nodes, # of tasks) for each slurm job
 def open_tuple_file(file_name):
@@ -134,6 +111,26 @@ def lammps(test_number, nodes, tasks):
     print(f"Submitted job: {job_name}")
 
 if __name__ == "__main__":
+
+    # Create the parser
+    parser = argparse.ArgumentParser(description='Submits a series of test runs of a program on a slurm cluster')
+
+    #parser.add_argument('--test-series', required=True,  type=str, help='Name of a series of test')
+    #parser.add_argument('--program',     required=True,  type=str, help='Program you are benchmarking, options are: lammps')
+    parser.add_argument('--machine',     required=True,  type=str, help='HPC system you are benchmarking, options are: ec2, perlmutter')
+    parser.add_argument('--scaling',     required=False, type=str, help='Whether or not the problem scaling is fixed or free', default="free")
+    parser.add_argument('--tuples',      required=False, type=str, help='Series of (node,task) tuples for the tests', default="node_tuples.txt")
+    parser.add_argument('--slurm-flags', required=False, type=str, help='Machine specfic flags to be passed to srun', default="")
+    parser.add_argument('--length',      required=False, type=str, help='Length of test to run, options are: short, long', default="short")
+    parser.add_argument('--tau',         required=False, type=str, help='Whether or not to profile with tau, options are false, true', default="false")
+
+    # Parse arguments
+    args = parser.parse_args()
+    args_dict = vars(args)
+    for key in args_dict.keys(): #Makes every arg lowercase for string comparison
+        if key != "test_series":
+            args_dict[key] = args_dict[key].lower()
+
 
     # Pull the latest changes
     subprocess.run(["git", "pull"])
