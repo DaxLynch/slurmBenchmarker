@@ -54,7 +54,7 @@ def lammps_results(test_number_directory, test_number, nodes, tasks):
         raise TestValueError("No value found for the n1_t1 wall time")
     elif wall_time == None:
         raise TestValueError(f"No value found for the n{nodes}_t{tasks} wall time")
-    else comm_pct == None:
+    elif comm_pct == None:
         raise TestValueError("No value found for the n{nodes}_t{tasks} Comm Pct")
 
     parallel_eff = control_wall_time/wall_time*100

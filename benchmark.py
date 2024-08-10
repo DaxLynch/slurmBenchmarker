@@ -1,8 +1,6 @@
 import subprocess
 import pandas as pd
 import time
-
-
 import argparse
 import subprocess
 import os
@@ -113,10 +111,7 @@ if __name__ == "__main__":
     # Create the parser
     parser = argparse.ArgumentParser(description='Submits a series of test runs of a program on a slurm cluster')
 
-    #parser.add_argument('--test-series', required=True,  type=str, help='Name of a series of test')
-    #parser.add_argument('--program',     required=True,  type=str, help='Program you are benchmarking, options are: lammps')
-    parser.add_argument('--machine',     required=True,  type=str, help='HPC system you are benchmarking, options are: ec2, perlmutter')
-    parser.add_argument('--scaling',     required=False, type=str, help='Whether or not the problem scaling is fixed or free', default="free")
+    parser.add_argument('--machine',     required=True,  type=str.lower, help='HPC system you are benchmarking, options are: ec2, perlmutter')
     parser.add_argument('--tuples',      required=False, type=str, help='Series of (node,task) tuples for the tests', default="node_tuples.txt")
     parser.add_argument('--slurm-flags', required=False, type=str, help='Machine specfic flags to be passed to srun', default="")
     parser.add_argument('--length',      required=False, type=str, help='Length of test to run, options are: short, long', default="short")
@@ -125,13 +120,9 @@ if __name__ == "__main__":
     # Parse arguments
     args = parser.parse_args()
     args_dict = vars(args)
-    for key in args_dict.keys(): #Makes every arg lowercase for string comparison
-        if key != "test_series":
-            args_dict[key] = args_dict[key].lower()
-
 
     # Pull the latest changes
-    subprocess.run(["git", "pull"])
+    #subprocess.run(["git", "pull"])
 
     # Load the CSV file
     csv_path = f"results.csv"
@@ -141,7 +132,8 @@ if __name__ == "__main__":
     
     ensure_directories(new_test_number)
 
-    for nodes, tasks in open_tuple_file("node_tuples.txt"):         #args_dict["tuples"]):
+    shutil.copy(args_dict["tuples"], join("benchmark_results", new_test_number, "node_tuples.txt"))        
+    for nodes, tasks in open_tuple_file(args_dict["tuples"]):
         lammps(new_test_number, nodes, tasks)
         
 
