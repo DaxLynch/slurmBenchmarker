@@ -53,6 +53,7 @@ def lammps_graph(file_path_to_results_csv):
 
 # Define a function to read the data from a series of lammps runs
 # returns a pandas df
+
 def lammps(test_series_name): #results is a list of tuples of files and their names.
     test_series_directory = join("benchmark_results",test_series_name)
     if not os.path.exists(test_series_directory):

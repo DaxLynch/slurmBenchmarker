@@ -1,4 +1,5 @@
 each file access should have a file check, a failure to get a file ashould be an error raise,
 failure to get a datapoint should be a warning, and likely an error, as a missing datapoint might throw and error during graphing
 we need some way to handle the required info given to each file, maybe hold it in nodeTuple.txt, in its first line, hold the number of tuples, then the tuples, then info.
+make sure there is 1x1 node, and 4x64 node
 

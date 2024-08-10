@@ -11,6 +11,7 @@ import math
 import shutil
 
 args_dict = {}
+column_names = ["Test Number", "OS", "Nodes", "Tasks","Lammps PE","Lammps PCTComm"]
 
 # Define a function to create sbatch script content
 def create_sbatch_script_lammps(test_number, nodes, tasks, job_name):
@@ -28,7 +29,6 @@ def create_sbatch_script_lammps(test_number, nodes, tasks, job_name):
 
     directives = ""
     environments = ""
-    tau = ""
     slurm_flags = args_dict["slurm_flags"]  
     length = f"program_files/{args_dict['length']}.lj"
 
@@ -81,16 +81,14 @@ def ensure_directories(test_number):
     else:
         os.makedirs(dir_name) 
         os.makedirs(join(dir_name,test_number))     
-
 #Ensures that the csv is created and well formed
 def ensure_csv(csv_path):
     results_df = None
-    ensure_csv.column_names = ["Test Number", "OS", "Nodes", "Tasks","Lammps PE","Lammps PCTComm"]
-    column_names = ensure_csv.column_names
     if os.path.exists(csv_path):
         results_df = pd.read_csv(csv_path, index_col="Test Number")
     else:
         results_df = pd.DataFrame(columns=column_names).set_index("Test Number")      
+        results_df.to_csv(csv_path)
     return results_df
 
 #Returns a list of tuples, with each tuple representing (# of Nodes, # of tasks) for each slurm job
