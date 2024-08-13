@@ -42,12 +42,10 @@ def lammps_results(test_number_directory, test_number, nodes, tasks):
     loop_time_match = re.search(r"Loop time of\s*([\d\.]+)", lines)
     if loop_time_match:
         wall_time = float(loop_time_match.group(1))
-        print("SUCCESS time found")
 
     # Extract Percent Time in Communication
     comm_pct_match = re.search(r"Comm\s*\|(?:\s*[\d\.]+\s*\|){4}\s*([\d\.]+)", lines)
     if comm_pct_match:
-        print("SUCCESS comm pct found")
         comm_pct = float(comm_pct_match.group(1))
 
     if control_wall_time == None:
@@ -83,7 +81,11 @@ if __name__ == "__main__":
     node_file = join(test_number_directory,"node_tuples.txt")
     if not os.path.exists(node_file):
         raise FileNotFoundError(f"The file {node_file} does not exist.")
-  
+ 
+    system_info_dict = {}
+    with open(join(test_number_directory,"sys_info.txt"), "r") as sys_info:
+        system_info_dict = eval(sys_info.read())
+
     # Load the CSV file
     csv_path = f"results.csv"
     results_df = ensure_csv(csv_path)

@@ -9,7 +9,7 @@ import math
 import shutil
 
 args_dict = {}
-column_names = ["Test Number", "OS", "Nodes", "Tasks","Lammps PE","Lammps PCTComm"]
+column_names = ["Test Number", "Nodes", "Tasks","Lammps PE","Lammps PCTComm","Provider", "Instance Type"]
 
 # Define a function to create sbatch script content
 def create_sbatch_script_lammps(test_number, nodes, tasks, job_name):
@@ -42,7 +42,7 @@ spack load --first lammps"""
     elif args_dict["machine"] == "perlmutter":  #Perlmutter specific directives
         directives =  """#SBATCH --image docker:nersc/lammps_all:23.08  
 #SBATCH -C cpu
-#SBATCH -A 
+#SBATCH -A m3896
 #SBATCH -q regular"""
         
         slurm_flags = slurm_flags + "--cpu-bind=cores --module mpich shifter"  #Specific flags for slurm
@@ -69,7 +69,7 @@ def submit_sbatch_script(test_number, script_content, job_name):
     script_file = f"benchmark_results/{test_number}/{job_name}.sbatch"
     with open(script_file, 'w') as f:
         f.write(script_content)
-    #subprocess.run(['sbatch', script_file])
+    subprocess.run(['sbatch', script_file])
 
 #Ensures that the directory required for the tests is created.
 def ensure_directories(test_number):     
@@ -99,6 +99,19 @@ def open_tuple_file(file_name):
         ret.append((nodes,tasks))
     return ret
 
+#writes the node_tuple.txt file and the sys_info.txt file
+def write_system_info(new_test_number):
+    shutil.copy(args_dict["tuples"], join("benchmark_results", new_test_number, "node_tuples.txt"))        
+    instance_type = None
+    provider=None
+    if args_dict['machine'] == 'ec2':
+        if args_dict[]
+        provider =
+    with open(join("benchmark_results",new_test_number,"sys_info.txt"), "w+") as sys_info:
+        system_info_dict = {'Instance Type':instance_type,'Provider':provider}
+        sys_info.write(str(system_info_dict))
+
+
 #Submit tests on lammps
 def lammps(test_number, nodes, tasks):
     job_name = f"lammps_n{nodes}_t{tasks}"
@@ -115,7 +128,7 @@ if __name__ == "__main__":
     parser.add_argument('--tuples',      required=False, type=str, help='Series of (node,task) tuples for the tests', default="node_tuples.txt")
     parser.add_argument('--slurm-flags', required=False, type=str, help='Machine specfic flags to be passed to srun', default="")
     parser.add_argument('--length',      required=False, type=str, help='Length of test to run, options are: short, long', default="short")
-    parser.add_argument('--tau',         required=False, type=str, help='Whether or not to profile with tau, options are false, true', default="false")
+    parser.add_argument('--instance-type',required=False, type=str.lower, help='Type of compute node')
 
     # Parse arguments
     args = parser.parse_args()
@@ -132,7 +145,8 @@ if __name__ == "__main__":
     
     ensure_directories(new_test_number)
 
-    shutil.copy(args_dict["tuples"], join("benchmark_results", new_test_number, "node_tuples.txt"))        
+    write_system_info(new_test_number)
+
     for nodes, tasks in open_tuple_file(args_dict["tuples"]):
         lammps(new_test_number, nodes, tasks)
         
