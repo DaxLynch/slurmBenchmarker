@@ -9,7 +9,7 @@ import math
 import shutil
 
 args_dict = {}
-column_names = ["Test Number", "Nodes", "Tasks","Lammps PE","Lammps PCTComm","Provider", "Instance Type"]
+column_names = ["Test Number", "Nodes", "Tasks","Lammps PE","Lammps PCTComm","Provider", "Instance Type", "OS Version"]
 
 # Define a function to create sbatch script content
 def create_sbatch_script_lammps(test_number, nodes, tasks, job_name):
@@ -42,7 +42,7 @@ spack load --first lammps"""
     elif args_dict["machine"] == "perlmutter":  #Perlmutter specific directives
         directives =  """#SBATCH --image docker:nersc/lammps_all:23.08  
 #SBATCH -C cpu
-#SBATCH -A m3896
+#SBATCH -A 
 #SBATCH -q regular"""
         
         slurm_flags = slurm_flags + "--cpu-bind=cores --module mpich shifter"  #Specific flags for slurm
@@ -89,6 +89,12 @@ def ensure_csv(csv_path):
         results_df.to_csv(csv_path)
     return results_df
 
+class TestTupleError(Exception):
+    """Whenever tests are done, they should be completed at minimum on 1 node and 1 task (1,1), and 4 node and 64 tasks. This is to ensure some measure of comparison"""
+    def __init__(self, message="Control tuple(s) not found"):
+        self.message = message
+        super().__init__(self.message)
+
 #Returns a list of tuples, with each tuple representing (# of Nodes, # of tasks) for each slurm job
 def open_tuple_file(file_name):
     tuple_lines = open(file_name,'r').readlines()
@@ -97,19 +103,39 @@ def open_tuple_file(file_name):
         nodes = int(node_task.split()[0])
         tasks = int(node_task.split()[1])
         ret.append((nodes,tasks))
+
+    if (1,1) not in ret or (4,64) not in ret:
+        raise TestTupleError()
     return ret
 
 #writes the node_tuple.txt file and the sys_info.txt file
 def write_system_info(new_test_number):
     shutil.copy(args_dict["tuples"], join("benchmark_results", new_test_number, "node_tuples.txt"))        
-    instance_type = None
-    provider=None
-    if args_dict['machine'] == 'ec2':
-        if args_dict[]
-        provider =
+    instance_type = args_dict['instance_type']
+    os_version = args_dict['os_version']
+    providers = {'ec2': 'AWS', 'perlmutter':'NERSC'}
+    provider = providers[args_dict['machine']]
+
     with open(join("benchmark_results",new_test_number,"sys_info.txt"), "w+") as sys_info:
-        system_info_dict = {'Instance Type':instance_type,'Provider':provider}
+        system_info_dict = {'Instance Type':instance_type,'Provider':provider, 'OS Version':os_version, 'Date':time.ctime(int(new_test_number))}
         sys_info.write(str(system_info_dict))
+
+def parse_args():
+
+    # Create the parser
+    parser = argparse.ArgumentParser(description='Submits a series of test runs of a program on a slurm cluster')
+
+    parser.add_argument('--machine',     required=True,  type=str.lower, help='HPC system you are benchmarking, options are: ec2, perlmutter', choices=['ec2', 'perlmutter'])
+    parser.add_argument('--tuples',      required=False, type=str, help='Series of (node,task) tuples for the tests', default="node_tuples.txt")
+    parser.add_argument('--slurm-flags', required=False, type=str, help='Machine specfic flags to be passed to srun', default="")
+    parser.add_argument('--length',      required=False, type=str, help='Length of test to run, options are: short, long', default="short", choices=['short','long'])
+    parser.add_argument('--instance-type',required=True, type=str.lower, help='Type of compute node')
+    parser.add_argument('--os-version',   required=True, type=str.lower, help='OS Version, options are: ubuntu2204', choices=['ubuntu2204'])
+
+    # Parse arguments
+    args = parser.parse_args()
+    
+    return args
 
 
 #Submit tests on lammps
@@ -121,17 +147,8 @@ def lammps(test_number, nodes, tasks):
 
 if __name__ == "__main__":
 
-    # Create the parser
-    parser = argparse.ArgumentParser(description='Submits a series of test runs of a program on a slurm cluster')
 
-    parser.add_argument('--machine',     required=True,  type=str.lower, help='HPC system you are benchmarking, options are: ec2, perlmutter')
-    parser.add_argument('--tuples',      required=False, type=str, help='Series of (node,task) tuples for the tests', default="node_tuples.txt")
-    parser.add_argument('--slurm-flags', required=False, type=str, help='Machine specfic flags to be passed to srun', default="")
-    parser.add_argument('--length',      required=False, type=str, help='Length of test to run, options are: short, long', default="short")
-    parser.add_argument('--instance-type',required=False, type=str.lower, help='Type of compute node')
-
-    # Parse arguments
-    args = parser.parse_args()
+    args = parse_args()
     args_dict = vars(args)
 
     # Pull the latest changes
@@ -146,7 +163,7 @@ if __name__ == "__main__":
     ensure_directories(new_test_number)
 
     write_system_info(new_test_number)
-
+ 
     for nodes, tasks in open_tuple_file(args_dict["tuples"]):
         lammps(new_test_number, nodes, tasks)
         

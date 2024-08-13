@@ -82,8 +82,13 @@ if __name__ == "__main__":
     if not os.path.exists(node_file):
         raise FileNotFoundError(f"The file {node_file} does not exist.")
  
+
     system_info_dict = {}
-    with open(join(test_number_directory,"sys_info.txt"), "r") as sys_info:
+    sys_info_file = join(test_number_directory,"sys_info.txt")
+    if not os.path.exists(sys_info_file):
+        raise FileNotFoundError(f"The file {sys_info_file} does not exist.")
+    else:
+        sys_info =  open(sys_info_file, "r")
         system_info_dict = eval(sys_info.read())
 
     # Load the CSV file
@@ -100,6 +105,12 @@ if __name__ == "__main__":
     #   openFOAM_results = openFOAM(test_number, nodes, tasks)
     #   new_test_results.update(openFOAM_results)
         
+        #Update the test results with the system info from the tests
+        new_test_results['Nodes'] = nodes
+        new_test_results['Tasks'] = tasks
+        new_test_results['Test Number'] = test_number
+        new_test_results.update(system_info_dict)
+
         new_test_row = pd.DataFrame([new_test_results]).set_index("Test Number")
         results_df = pd.concat([results_df, new_test_row])
 

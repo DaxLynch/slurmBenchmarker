@@ -18,5 +18,5 @@ python -i slurm_logvis.py --test-series=OneNodeRun --program=lammps --scaling=fi
 
 Note do not put senistive data like account numbers in the machine specific directives
 
-
+python benchmark.py  --machine=ec2 --os-version=ubuntu2204
 
