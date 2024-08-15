@@ -64,6 +64,51 @@ export OMP_NUM_THREADS=1
     else:
         return ret + f"srun -n {tasks} {slurm_flags} lmp -var x {x} -var y {y} -var z {z} -in {length} -log benchmark_results/{test_number}/{job_name}_lammps.log"
 
+# Define a function to create sbatch script content
+def create_sbatch_script_openfoam(test_number, nodes, tasks, job_name):
+    directives = ""
+    environments = ""
+    slurm_flags = args_dict["slurm_flags"]  
+
+    job_directory = f"benchmark_results/{test_number}/{job_name}" #For openfoam we need a case directory. In each node tuple we create a new directory, copy in the size test we want, 1M or 8M, and then pase this to each later command
+
+    if args_dict["machine"] == "ec2":          #The below are the machine specific directives and environment variables
+                                               #required for slurm
+        directives =  """#SBATCH --exclusive"""
+        environments= """#Set environment variables
+export MV2_HOMOGENEOUS_CLUSTER=1
+export MV2_SUPPRESS_JOB_STARTUP_PERFORMANCE_WARNING=1
+"""
+    elif args_dict["machine"] == "perlmutter":  #Perlmutter specific directives
+        directives =  """#SBATCH -C cpu
+#SBATCH -A 
+#SBATCH -q regular"""
+        
+        slurm_flags = slurm_flags + "--cpu-bind=cores "  #Specific flags for slurm
+ 
+    parallel = "" if tasks == 1 else "-parallel" #Don't add the parallel unless multile processes
+
+    ret = f"""#!/bin/bash
+#SBATCH --job-name={test_number}_{job_name} 
+#SBATCH --nodes={nodes}
+#SBATCH --ntasks={tasks}
+#SBATCH -t 0-0:20
+#SBATCH --output=benchmark_results/{test_number}/{job_name}.out
+#SBATCH --error=benchmark_results/{test_number}/{job_name}.err
+{directives}
+
+{environments}
+#load openFOAM
+spack load --first openfoam
+. ${{WM_PROJECT_DIR:?}}/bin/tools/RunFunctions
+
+blockMesh -case {job_directory}
+decomposePar -case {job_directory}
+srun {slurm_flags} renumberMesh -overwrite {parallel} -case {job_directory}
+srun {slurm_flags} icoFoam {parallel} -case {job_directory}
+""" 
+    return ret
+
 # Function to submit the sbatch script
 def submit_sbatch_script(test_number, script_content, job_name):
     script_file = f"benchmark_results/{test_number}/{job_name}.sbatch"
@@ -79,6 +124,7 @@ def ensure_directories(test_number):
     else:
         os.makedirs(dir_name) 
         os.makedirs(join(dir_name,test_number))     
+
 #Ensures that the csv is created and well formed
 def ensure_csv(csv_path):
     results_df = None
@@ -145,6 +191,21 @@ def lammps(test_number, nodes, tasks):
     submit_sbatch_script(test_number, script_content, job_name)
     print(f"Submitted job: {job_name}")
 
+#Submit tests on openfoam
+def openfoam(test_number, nodes, tasks):
+    job_name = f"openfoam_n{nodes}_t{tasks}"
+    if args_dict['length'] == "short":
+        shutil.copytree("program_files/openfoam/1M",f"benchmark_results/{test_number}/{job_name}")
+    else:
+        shutil.copytree("program_files/openfoam/8M",f"benchmark_results/{test_number}/{job_name}")
+    
+    subprocess.run(["sed", "-i", f"s/numberOfSubdomains 32;/numberOfSubdomains {tasks};/", f"benchmark_results/{test_number}/{job_name}/system/decomposeParDict"])
+    script_content = create_sbatch_script_openfoam(test_number, nodes, tasks, job_name)
+    submit_sbatch_script(test_number, script_content, job_name)
+    print(f"Submitted job: {job_name}")
+
+
+
 if __name__ == "__main__":
 
 
@@ -165,7 +226,7 @@ if __name__ == "__main__":
     write_system_info(new_test_number)
  
     for nodes, tasks in open_tuple_file(args_dict["tuples"]):
-        lammps(new_test_number, nodes, tasks)
-        
+        #lammps(new_test_number, nodes, tasks)
+        openfoam(new_test_number, nodes, tasks)
 
    
