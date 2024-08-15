@@ -1,4 +1,7 @@
 failure to get a datapoint should be a warning, and likely an error, as a missing datapoint might throw and error during graphing
-we need some way to handle the required info given to each file, maybe hold it in nodeTuple.txt, in its first line, hold the number of tuples, then the tuples, then info.
-make sure there is 1x1 node, and 4x64 node
 
+need to create update for the openfoam benchamrsk
+
+need to benchmark xyce and others
+
+need to create grapher.py that can pull from the pandas csv

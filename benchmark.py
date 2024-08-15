@@ -9,7 +9,7 @@ import math
 import shutil
 
 args_dict = {}
-column_names = ["Test Number", "Nodes", "Tasks","Lammps PE","Lammps PCTComm","Provider", "Instance Type", "OS Version"]
+column_names = ["Test Number", "Nodes", "Tasks","Provider", "Instance Type", "OS Version","Lammps PE","Lammps PCTComm","openFOAM PE"]
 
 # Define a function to create sbatch script content
 def create_sbatch_script_lammps(test_number, nodes, tasks, job_name):
@@ -226,7 +226,7 @@ if __name__ == "__main__":
     write_system_info(new_test_number)
  
     for nodes, tasks in open_tuple_file(args_dict["tuples"]):
-        #lammps(new_test_number, nodes, tasks)
+        lammps(new_test_number, nodes, tasks)
         openfoam(new_test_number, nodes, tasks)
 
    

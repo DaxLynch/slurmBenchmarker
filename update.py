@@ -59,6 +59,51 @@ def lammps_results(test_number_directory, test_number, nodes, tasks):
     data = {"Lammps PE": parallel_eff, "Lammps PCTComm": comm_pct}
     return data 
 
+# Extracts the results of the openfoam test into a dictionary
+def openfoam_results(test_number_directory, test_number, nodes, tasks):
+    
+    test_file_name = join(test_number_directory, f"openfoam_n{nodes}_t{tasks}.out")
+    control_test_file_name = join(test_number_directory, "openfoam_n1_t1.out")
+
+    if not os.path.exists(test_file_name):
+        raise FileNotFoundError(f"The file {test_file_name} does not exist.")
+
+    if not os.path.exists(control_test_file_name):
+        raise FileNotFoundError(f"The file {control_test_file_name} does not exist.")
+
+    control_execution_time = None
+    execution_time = None
+    control_comm_pct = None
+    comm_pct = None
+
+    # Extract Execution Time value for the control
+    control_lines = open(control_test_file_name,'r').read()
+    control_execution_time_match = re.findall("ExecutionTime =\s*([\d\.]+)", control_lines)
+    if control_execution_time_match:
+        control_execution_time = float(control_execution_time_match[-1])
+
+    # Extract Execution Time value
+    lines = open(test_file_name,'r').read()
+    execution_time_match = re.findall("ExecutionTime =\s*([\d\.]+)", lines)
+    if execution_time_match:
+        execution_time = float(execution_time_match[-1])
+
+    # Extract Percent Time in Communication
+    #comm_pct_match = re.search(r"Comm\s*\|(?:\s*[\d\.]+\s*\|){4}\s*([\d\.]+)", lines)
+    #if comm_pct_match:
+    #    comm_pct = float(comm_pct_match.group(1))
+
+    if control_execution_time == None:
+        raise TestValueError("No value found for the n1_t1 execution time")
+    elif execution_time == None:
+        raise TestValueError(f"No value found for the n{nodes}_t{tasks} execution time")
+    #elif comm_pct == None:
+    #    raise TestValueError("No value found for the n{nodes}_t{tasks} Comm Pct")
+
+    parallel_eff = control_execution_time/tasks/execution_time*100
+    data = {"openFOAM PE": parallel_eff}
+    return data 
+
 args_dict = {}
 
 if __name__ == "__main__":
@@ -102,8 +147,8 @@ if __name__ == "__main__":
         lammps_dict = lammps_results(test_number_directory, test_number, nodes, tasks) #THis should check for existence of the lamps file, and if it produces a naan should atleast throw a warning
         new_test_results.update(lammps_dict)
 
-    #   openFOAM_results = openFOAM(test_number, nodes, tasks)
-    #   new_test_results.update(openFOAM_results)
+        openfoam_dict = openfoam_results(test_number_directory, test_number, nodes, tasks)
+        new_test_results.update(openfoam_dict)
         
         #Update the test results with the system info from the tests
         new_test_results['Nodes'] = nodes
