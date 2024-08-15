@@ -63,6 +63,7 @@ def lammps_results(test_number_directory, test_number, nodes, tasks):
 def openfoam_results(test_number_directory, test_number, nodes, tasks):
     
     test_file_name = join(test_number_directory, f"openfoam_n{nodes}_t{tasks}.out")
+    test_error_file_name = join(test_number_directory, f"openfoam_n{nodes}_t{tasks}.err")
     control_test_file_name = join(test_number_directory, "openfoam_n1_t1.out")
 
     if not os.path.exists(test_file_name):
@@ -70,6 +71,9 @@ def openfoam_results(test_number_directory, test_number, nodes, tasks):
 
     if not os.path.exists(control_test_file_name):
         raise FileNotFoundError(f"The file {control_test_file_name} does not exist.")
+
+    if open(test_error_file_name, 'r').read() != "":
+        print("Error file is nonempty") #Maybe this should just throw an error
 
     control_execution_time = None
     execution_time = None
