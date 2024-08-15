@@ -1,22 +1,14 @@
 This Repo is meant to aid me in benchmarking various programs that run on slurm, with the goal of comparing performance across multiple HPC systems.
 
-It uses the node_tuples.txt to submit multiple slurm sbatch scripts with varying node and task sizes, so you can see how performance scales with inter- and intranode communication.
+It uses the node_tuples.txt to submit multiple slurm sbatch scripts with varying node and task sizes, so you can see how performance scales with inter- and intranode communication. It then uploads the results into results.csv.
 To run, alter the node_tuples.txt to show how many runs you want of specfic sizes, the two numbers representing nodes and tasks respective, with it assumed you want ntasks-per-node=nodes//tasks
 
-If running on perlmutter, alter the below line:
+If running on perlmutter cluster, alter the below line:
 #SBATCH -A ###CHANGE ME TO YOUR PERLMUTTER ACCOUNT NUMBER###
 
-Then call slurm_benchmarker with a name for the series of tests you want to run, labeled test-series, the file pointing to the tuples, which program you are wishing to record, and whether or not you want the size of the problem to scale, and which machine you are calling on. 
+Then call benchmarker.py with the provider and instance type.
 
-Once these have all returned, call slurm_logviz with similar commands.
+Once these have all returned, call upload.py with the test number of the data you want to upload.
 
 for example:
-with the given node_tuples.txt,
-
-python slurm_benchmarker.py --test-series=NameOfTest --tuples=node_tuples.txt --program=lammps --scaling=free --machine=perlmutter --length=short
-python -i slurm_logvis.py --test-series=OneNodeRun --program=lammps --scaling=fixed --graph=False --length=short
-
-Note do not put senistive data like account numbers in the machine specific directives
-
-python benchmark.py  --machine=ec2 --os-version=ubuntu2204
-
+python benchmark.py  --provider=aws --instance-type=g4dn.8xlarge
