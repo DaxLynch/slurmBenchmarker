@@ -1,7 +1,3 @@
-failure to get a datapoint should be a warning, and likely an error, as a missing datapoint might throw and error during graphing
-
-need to create update for the openfoam benchamrsk
-
 need to benchmark xyce and others
 
 need to create grapher.py that can pull from the pandas csv

@@ -31,7 +31,7 @@ def create_sbatch_script_lammps(test_number, nodes, tasks, job_name):
     length = f"program_files/{args_dict['length']}.lj"
 
 
-    if args_dict["machine"] == "ec2":          #The below are the machine specific directives and environment variables
+    if args_dict["provider"] == "aws":          #The below are the machine specific directives and environment variables
                                                #required for slurm
         directives =  """#SBATCH --exclusive"""
         environments= """#Set environment variables
@@ -39,10 +39,11 @@ export MV2_HOMOGENEOUS_CLUSTER=1
 export MV2_SUPPRESS_JOB_STARTUP_PERFORMANCE_WARNING=1
 # Load LAMMPS
 spack load --first lammps"""
-    elif args_dict["machine"] == "perlmutter":  #Perlmutter specific directives
+    elif args_dict["provider"] == "perlmutter":  #Perlmutter specific directives
         directives =  """#SBATCH --image docker:nersc/lammps_all:23.08  
 #SBATCH -C cpu
 #SBATCH -A 
+    providers = {'ec2': 'AWS', 'perlmutter':'NERSC'}
 #SBATCH -q regular"""
         
         slurm_flags = slurm_flags + "--cpu-bind=cores --module mpich shifter"  #Specific flags for slurm
@@ -72,14 +73,14 @@ def create_sbatch_script_openfoam(test_number, nodes, tasks, job_name):
 
     job_directory = f"benchmark_results/{test_number}/{job_name}" #For openfoam we need a case directory. In each node tuple we create a new directory, copy in the size test we want, 1M or 8M, and then pase this to each later command
 
-    if args_dict["machine"] == "ec2":          #The below are the machine specific directives and environment variables
+    if args_dict["provider"] == "aws":          #The below are the machine specific directives and environment variables
                                                #required for slurm
         directives =  """#SBATCH --exclusive"""
         environments= """#Set environment variables
 export MV2_HOMOGENEOUS_CLUSTER=1
 export MV2_SUPPRESS_JOB_STARTUP_PERFORMANCE_WARNING=1
 """
-    elif args_dict["machine"] == "perlmutter":  #Perlmutter specific directives
+    elif args_dict["provider"] == "perlmutter":  #Perlmutter specific directives
         directives =  """#SBATCH -C cpu
 #SBATCH -A 
 #SBATCH -q regular"""
@@ -159,8 +160,7 @@ def write_system_info(new_test_number):
     shutil.copy(args_dict["tuples"], join("benchmark_results", new_test_number, "node_tuples.txt"))        
     instance_type = args_dict['instance_type']
     os_version = args_dict['os_version']
-    providers = {'ec2': 'AWS', 'perlmutter':'NERSC'}
-    provider = providers[args_dict['machine']]
+    provider = args_dict['provider']
 
     with open(join("benchmark_results",new_test_number,"sys_info.txt"), "w+") as sys_info:
         system_info_dict = {'Instance Type':instance_type,'Provider':provider, 'OS Version':os_version, 'Date':time.ctime(int(new_test_number))}
@@ -171,12 +171,12 @@ def parse_args():
     # Create the parser
     parser = argparse.ArgumentParser(description='Submits a series of test runs of a program on a slurm cluster')
 
-    parser.add_argument('--machine',     required=True,  type=str.lower, help='HPC system you are benchmarking, options are: ec2, perlmutter', choices=['ec2', 'perlmutter'])
-    parser.add_argument('--tuples',      required=False, type=str, help='Series of (node,task) tuples for the tests', default="node_tuples.txt")
-    parser.add_argument('--slurm-flags', required=False, type=str, help='Machine specfic flags to be passed to srun', default="")
-    parser.add_argument('--length',      required=False, type=str, help='Length of test to run, options are: short, long', default="short", choices=['short','long'])
-    parser.add_argument('--instance-type',required=True, type=str.lower, help='Type of compute node')
-    parser.add_argument('--os-version',   required=True, type=str.lower, help='OS Version, options are: ubuntu2204', choices=['ubuntu2204'])
+    parser.add_argument('--provider',      required=True,  type=str.lower, help='HPC system you are benchmarking, options are: aws, perlmutter', choices=['aws', 'perlmutter'])
+    parser.add_argument('--tuples',        required=False, type=str, help='Series of (node,task) tuples for the tests', default="node_tuples.txt")
+    parser.add_argument('--slurm-flags',   required=False, type=str, help='Machine specfic flags to be passed to srun', default="")
+    parser.add_argument('--length',        required=False, type=str, help='Length of test to run, options are: short, long', default="short", choices=['short','long'])
+    parser.add_argument('--instance-type', required=True, type=str.lower, help='Type of compute node')
+    parser.add_argument('--os-version',    required=False, type=str.lower, help='OS Version, options are: ubuntu2204', default="ubuntu2204", choices=['ubuntu2204'])
 
     # Parse arguments
     args = parser.parse_args()
