@@ -11,6 +11,9 @@ import shutil
 args_dict = {}
 column_names = ["Test Number", "Nodes", "Tasks","Provider", "Instance Type", "OS Version","Lammps PE","Lammps PCTComm","openFOAM PE"]
 
+
+#---------------------------------LAMMPS---------------------------------------
+
 # Define a function to create sbatch script content
 def create_sbatch_script_lammps(test_number, nodes, tasks, job_name):
     assert math.log2(tasks) == int(math.log2(tasks)) #I decided task size should be in powers of two, for ease of testing.
@@ -63,7 +66,20 @@ export OMP_NUM_THREADS=1
     if tasks == 1:
         return ret + f"srun {slurm_flags} lmp -in {length} -log benchmark_results/{test_number}/{job_name}_lammps.log"
     else:
-        return ret + f"srun -n {tasks} {slurm_flags} lmp -var x {x} -var y {y} -var z {z} -in {length} -log benchmark_results/{test_number}/{job_name}_lammps.log"
+        return ret + f"srun -n {tasks} {slurm_flags} lmp -var x {x} -var y {y} -var z {z} -in {length}"
+
+#Submit tests on lammps
+def lammps(test_number, nodes, tasks):
+    job_name = f"lammps_n{nodes}_t{tasks}"
+    script_content = create_sbatch_script_lammps(test_number, nodes, tasks, job_name)
+    submit_sbatch_script(test_number, script_content, job_name)
+    print(f"Submitted job: {job_name}")
+
+
+
+#---------------------------------openFOAM---------------------------------------
+
+
 
 # Define a function to create sbatch script content
 def create_sbatch_script_openfoam(test_number, nodes, tasks, job_name):
@@ -109,6 +125,89 @@ srun {slurm_flags} renumberMesh -overwrite {parallel} -case {job_directory}
 srun {slurm_flags} icoFoam {parallel} -case {job_directory}
 """ 
     return ret
+
+#Submit tests on openfoam
+def openfoam(test_number, nodes, tasks):
+    job_name = f"openfoam_n{nodes}_t{tasks}"
+    if args_dict['length'] == "short":
+        shutil.copytree("program_files/openfoam/1M",f"benchmark_results/{test_number}/{job_name}")
+    else:
+        shutil.copytree("program_files/openfoam/8M",f"benchmark_results/{test_number}/{job_name}")
+    
+    subprocess.run(["sed", "-i", f"s/numberOfSubdomains 32;/numberOfSubdomains {tasks};/", f"benchmark_results/{test_number}/{job_name}/system/decomposeParDict"])
+    script_content = create_sbatch_script_openfoam(test_number, nodes, tasks, job_name)
+    submit_sbatch_script(test_number, script_content, job_name)
+    print(f"Submitted job: {job_name}")
+
+#-----------------------------------------nekBone-------------------------------------
+
+
+
+# Define a function to create sbatch script content
+def create_sbatch_script_nekbone(test_number, nodes, tasks, job_name):
+    directives = ""
+    environments = ""
+    slurm_flags = args_dict["slurm_flags"]  
+
+    job_directory = f"benchmark_results/{test_number}/{job_name}" #For nekbone we need a case directory. In each node tuple we create a new directory, copy in the test
+
+    if args_dict["provider"] == "aws":          #The below are the machine specific directives and environment variables
+                                               #required for slurm
+        directives =  """#SBATCH --exclusive"""
+        environments= """#Set environment variables
+export MV2_HOMOGENEOUS_CLUSTER=1
+export MV2_SUPPRESS_JOB_STARTUP_PERFORMANCE_WARNING=1
+"""
+    elif args_dict["provider"] == "perlmutter":  #Perlmutter specific directives
+        directives =  """#SBATCH -C cpu
+#SBATCH -A 
+#SBATCH -q regular"""
+        
+        slurm_flags = slurm_flags + "--cpu-bind=cores "  #Specific flags for slurm
+ 
+    ret = f"""#!/bin/bash
+#SBATCH --job-name={test_number}_{job_name} 
+#SBATCH --nodes={nodes}
+#SBATCH --ntasks={tasks}
+#SBATCH -t 0-0:20
+#SBATCH --output=benchmark_results/{test_number}/{job_name}.out
+#SBATCH --error=benchmark_results/{test_number}/{job_name}.err
+{directives}
+
+{environments}
+#load nekBone
+spack load --first nekbone
+export G="-g -fallow-argument-mismatch"
+cd {job_directory}
+makenek ##Maybe silence to devnull
+
+srun {slurm_flags} ./nekbone
+""" 
+    return ret
+
+nekbone_loaded = 0
+
+#Submit tests on nekbone
+def nekbone(test_number, nodes, tasks):
+    #This function finds where makenek is, creates a job_directory, copies the test file SIZE into it, alters SIZE and then 
+    #creates and calls the sbatch script
+
+    job_name = f"nekbone_n{nodes}_t{tasks}"
+    global nekbone_loaded
+    if nekbone_loaded  == 0: #I have it so only the first call of nekbone() in a series test loads spack so it is quicker
+        subprocess.run(["spack","load","--sh", "nekbone"], stdout = subprocess.DEVNULL) ##Loads spack
+        nekbone_loaded = os.path.split(subprocess.run(['which','makenek'],capture_output=True).stdout.strip())[0].decode() #Gets the location of the makenek file
+
+    job_directory =  f"benchmark_results/{test_number}/{job_name}"
+    os.makedirs(job_directory, exist_ok=True)
+    shutil.copy(join(nekbone_loaded,"Nekbone/test/example1/SIZE"), job_directory) #Copies the test into the directory
+    shutil.copy(join(nekbone_loaded,"Nekbone/test/example1/data.rea"), job_directory) #Copies the test into the directory
+    subprocess.run(["sed", "-i", f"s/      parameter (lp = 10)/      parameter (lp = {tasks})/", f"{job_directory}/SIZE"])
+    script_content = create_sbatch_script_nekbone(test_number, nodes, tasks, job_name)
+    submit_sbatch_script(test_number, script_content, job_name)
+    print(f"Submitted job: {job_name}")
+
+
 
 # Function to submit the sbatch script
 def submit_sbatch_script(test_number, script_content, job_name):
@@ -184,26 +283,6 @@ def parse_args():
     return args
 
 
-#Submit tests on lammps
-def lammps(test_number, nodes, tasks):
-    job_name = f"lammps_n{nodes}_t{tasks}"
-    script_content = create_sbatch_script_lammps(test_number, nodes, tasks, job_name)
-    submit_sbatch_script(test_number, script_content, job_name)
-    print(f"Submitted job: {job_name}")
-
-#Submit tests on openfoam
-def openfoam(test_number, nodes, tasks):
-    job_name = f"openfoam_n{nodes}_t{tasks}"
-    if args_dict['length'] == "short":
-        shutil.copytree("program_files/openfoam/1M",f"benchmark_results/{test_number}/{job_name}")
-    else:
-        shutil.copytree("program_files/openfoam/8M",f"benchmark_results/{test_number}/{job_name}")
-    
-    subprocess.run(["sed", "-i", f"s/numberOfSubdomains 32;/numberOfSubdomains {tasks};/", f"benchmark_results/{test_number}/{job_name}/system/decomposeParDict"])
-    script_content = create_sbatch_script_openfoam(test_number, nodes, tasks, job_name)
-    submit_sbatch_script(test_number, script_content, job_name)
-    print(f"Submitted job: {job_name}")
-
 
 
 if __name__ == "__main__":
@@ -212,8 +291,6 @@ if __name__ == "__main__":
     args = parse_args()
     args_dict = vars(args)
 
-    # Pull the latest changes
-    #subprocess.run(["git", "pull"])
 
     # Load the CSV file
     csv_path = f"results.csv"
@@ -228,5 +305,6 @@ if __name__ == "__main__":
     for nodes, tasks in open_tuple_file(args_dict["tuples"]):
         lammps(new_test_number, nodes, tasks)
         openfoam(new_test_number, nodes, tasks)
+        nekbone(new_test_number, nodes, tasks)
 
    
