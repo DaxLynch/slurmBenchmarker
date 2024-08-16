@@ -185,23 +185,14 @@ srun {slurm_flags} ./nekbone
 """ 
     return ret
 
-nekbone_loaded = 0
-
 #Submit tests on nekbone
 def nekbone(test_number, nodes, tasks):
-    #This function finds where makenek is, creates a job_directory, copies the test file SIZE into it, alters SIZE and then 
+    #This function finds where makenek is, creates a job_directory, copies the test file SIZE and data.rea into it, alters SIZE and then 
     #creates and calls the sbatch script
 
     job_name = f"nekbone_n{nodes}_t{tasks}"
-    global nekbone_loaded
-    if nekbone_loaded  == 0: #I have it so only the first call of nekbone() in a series test loads spack so it is quicker
-        subprocess.run(["spack","load","--sh", "nekbone"], stdout = subprocess.DEVNULL) ##Loads spack
-        nekbone_loaded = os.path.split(subprocess.run(['which','makenek'],capture_output=True).stdout.strip())[0].decode() #Gets the location of the makenek file
-
     job_directory =  f"benchmark_results/{test_number}/{job_name}"
-    os.makedirs(job_directory, exist_ok=True)
-    shutil.copy(join(nekbone_loaded,"Nekbone/test/example1/SIZE"), job_directory) #Copies the test into the directory
-    shutil.copy(join(nekbone_loaded,"Nekbone/test/example1/data.rea"), job_directory) #Copies the test into the directory
+    shutil.copytree("program_files/nekbone/",job_directory) #Copies the test into the directory
     subprocess.run(["sed", "-i", f"s/      parameter (lp = 10)/      parameter (lp = {tasks})/", f"{job_directory}/SIZE"])
     script_content = create_sbatch_script_nekbone(test_number, nodes, tasks, job_name)
     submit_sbatch_script(test_number, script_content, job_name)
