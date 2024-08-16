@@ -6,9 +6,11 @@ To run, alter the node_tuples.txt to show how many runs you want of specfic size
 If running on perlmutter cluster, alter the below line:
 #SBATCH -A ###CHANGE ME TO YOUR PERLMUTTER ACCOUNT NUMBER###
 
-Then call benchmarker.py with the provider and instance type.
-
-Once these have all returned, call upload.py with the test number of the data you want to upload.
+Then call benchmarker.py with the provider and instance type. Once these have all returned, call upload.py with the test number of the data you want to upload.
 
 for example:
+git pull (loads the most recent results.csv)
 python benchmark.py  --provider=aws --instance-type=g4dn.8xlarge
+python update.py  --test-number=1738562555
+git add results.csv
+git push
