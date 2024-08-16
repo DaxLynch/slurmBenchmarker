@@ -9,7 +9,7 @@ import math
 import shutil
 
 args_dict = {}
-column_names = ["Test Number", "Nodes", "Tasks","Provider", "Instance Type", "OS Version","Lammps PE","Lammps PCTComm","openFOAM PE"]
+column_names = ["Test Number", "Date", "Nodes", "Tasks","Provider", "Instance Type", "OS Version","Lammps PE","Lammps PCTComm","openFOAM PE","Nekbone PE"]
 
 
 #---------------------------------LAMMPS---------------------------------------
@@ -64,9 +64,9 @@ export OMP_NUM_THREADS=1
 """ 
     
     if tasks == 1:
-        return ret + f"srun {slurm_flags} lmp -in {length} -log benchmark_results/{test_number}/{job_name}_lammps.log"
+        return ret + f"srun {slurm_flags} lmp -in {length} -log benchmark_results/{test_number}/lammps.log"
     else:
-        return ret + f"srun -n {tasks} {slurm_flags} lmp -var x {x} -var y {y} -var z {z} -in {length}"
+        return ret + f"srun -n {tasks} {slurm_flags} lmp -var x {x} -var y {y} -var z {z} -in {length} -log benchmark_results/{test_number}/lammps.log"
 
 #Submit tests on lammps
 def lammps(test_number, nodes, tasks):
