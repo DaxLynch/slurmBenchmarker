@@ -239,14 +239,12 @@ export MV2_SUPPRESS_JOB_STARTUP_PERFORMANCE_WARNING=1
 #SBATCH --error=benchmark_results/{test_number}/{job_name}.err
 {directives}
 
+export OMP_NUM_THREADS=1
 {environments}
-#load nekBone
-spack load --first quantum_espresso
-export G="-g -fallow-argument-mismatch"
-cd {job_directory}
-makenek #Maybe silence to devnull
+#load quantum espresso
+spack load --first quantum-espresso
 
-srun {slurm_flags} ./quantum_espresso
+srun pw.x -inp {job_directory}/pw.scf.in
 """ 
     return ret
 
@@ -256,35 +254,29 @@ def quantum_espresso(test_number, nodes, tasks):
     job_name = f"quantum_espresso_n{nodes}_t{tasks}"
     job_directory =  f"benchmark_results/{test_number}/{job_name}"
     
-    #Copies the test into the directory ## We need the test file to be correct tho
-    #test file must alter ./tmp/file
-    #Alter k to be equal to calculated xK
     #I want this problem to scale with the number of processors. So no matter how many
     #processors you run it on, it should always take about as long as the control
     #and the ratio of the ControlTime/eXperimentalTime aka cTime/xTime, is the parallel efficiency
-    #The variable that determines computational complexity is K^3. So cK is K for the control. cK = 15, so cK^3 = 3375. I then need to find the eXperimental K, xK, so that the eXperimental time is approximately cTime.
+    #The variable that determines computational complexity is K^3. So cK is K for the control. 
+    #cK = 15, so cK^3 = 3375. I then need to find the eXperimental K, xK, so that the eXperimental time is approximately cTime.
     #Via some algebra xK is (cK^3*nProc)^(1/3) and since K needs to be an integer, we round it.
     #But since it is not exact it means the xTime is not exactly equal to cTime,
-    #So via some algebra xTime = cTime * (xK/cK)^3/nProc.
-    cK = 15 #K value for nProc = 1
+    #So via some algebra xTime = cTime * (xK/cK)^3/nProc. This will be used when calculating parallel Eff.
+    cK = 10 #K value for nProc = 1
     xK = round((cK**3 * tasks)**(1/3))
 
     os.makedirs(job_directory, exist_ok=True)
     input_file_template_lines = open("program_files/quantum_espresso/pw.scf.in",'r').readlines()
     input_file_template_lines[-1] = f"  {xK} {xK} {xK} 1 1 1 \n"
-    input_file_template_lines[8] = f"  outdir = {job_directory} \n"
+    input_file_template_lines[8] = f"  outdir = '{job_directory}' \n"
     
     input_file = open(job_directory+"/pw.scf.in",'w')
     input_file.write("".join(input_file_template_lines))
     input_file.close()    
 
-
-
-#   script_content = create_sbatch_script_quantum_espresso(test_number, nodes, tasks, job_name)
-#   submit_sbatch_script(test_number, script_content, job_name)
+    script_content = create_sbatch_script_quantum_espresso(test_number, nodes, tasks, job_name)
+    submit_sbatch_script(test_number, script_content, job_name)
     print(f"Submitted job: {job_name}")
-
-
 
 
 #----------------------------------Utils-------------------------------------------
@@ -294,7 +286,7 @@ def submit_sbatch_script(test_number, script_content, job_name):
     script_file = f"benchmark_results/{test_number}/{job_name}.sbatch"
     with open(script_file, 'w') as f:
         f.write(script_content)
-#    subprocess.run(['sbatch', script_file])
+    subprocess.run(['sbatch', script_file])
 
 #Ensures that the directory required for the tests is created.
 def ensure_directories(test_number):     

@@ -12,7 +12,7 @@
   pseudo_dir = 'program_files/quantum_espresso/pseudos/'
 
 ! verbosity high will give more details on the output file
-  verbosity = 'high'
+  verbosity = 'low'
 /
 
 &SYSTEM
