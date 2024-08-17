@@ -9,8 +9,8 @@ import math
 import shutil
 
 args_dict = {}
-column_names = ["Test Number", "Date", "Nodes", "Tasks","Provider", "Instance Type", "OS Version","Lammps PE","Lammps PCTComm","openFOAM PE","Nekbone PE"]
-
+column_names = ["Test Number", "Date", "Nodes", "Tasks","Provider", "Instance Type", "OS Version","Lammps PE","Lammps PCTComm","openFOAM PE","Nekbone PE","QuanEspress PE"]
+quantum_espresso_cK = 10
 
 #---------------------------------LAMMPS---------------------------------------
 
@@ -250,7 +250,7 @@ srun pw.x -inp {job_directory}/pw.scf.in
 
 #Submit tests on quantum_espresso
 def quantum_espresso(test_number, nodes, tasks):
-
+    
     job_name = f"quantum_espresso_n{nodes}_t{tasks}"
     job_directory =  f"benchmark_results/{test_number}/{job_name}"
     
@@ -262,7 +262,7 @@ def quantum_espresso(test_number, nodes, tasks):
     #Via some algebra xK is (cK^3*nProc)^(1/3) and since K needs to be an integer, we round it.
     #But since it is not exact it means the xTime is not exactly equal to cTime,
     #So via some algebra xTime = cTime * (xK/cK)^3/nProc. This will be used when calculating parallel Eff.
-    cK = 10 #K value for nProc = 1
+    cK = quantum_espresso_cK #K value for nProc = 1
     xK = round((cK**3 * tasks)**(1/3))
 
     os.makedirs(job_directory, exist_ok=True)
@@ -375,9 +375,9 @@ if __name__ == "__main__":
     write_system_info(new_test_number)
  
     for nodes, tasks in open_tuple_file(args_dict["tuples"]):
-    #    lammps(new_test_number, nodes, tasks)
-     #   openfoam(new_test_number, nodes, tasks)
-      #  nekbone(new_test_number, nodes, tasks)
+        lammps(new_test_number, nodes, tasks)
+        openfoam(new_test_number, nodes, tasks)
+        nekbone(new_test_number, nodes, tasks)
         quantum_espresso(new_test_number, nodes, tasks)
 
    

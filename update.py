@@ -59,6 +59,8 @@ def lammps_results(test_number_directory, test_number, nodes, tasks):
     data = {"Lammps PE": parallel_eff, "Lammps PCTComm": comm_pct}
     return data 
 
+#--------------------------------------------openFOAM------------------------------------
+
 # Extracts the results of the openfoam test into a dictionary
 def openfoam_results(test_number_directory, test_number, nodes, tasks):
     
@@ -107,6 +109,8 @@ def openfoam_results(test_number_directory, test_number, nodes, tasks):
     parallel_eff = control_execution_time/tasks/execution_time*100
     data = {"openFOAM PE": parallel_eff}
     return data 
+
+#--------------------------------------------Nekbone------------------------------------
 
 # Extracts the results of the nekbone test into a dictionary
 def nekbone_results(test_number_directory, test_number, nodes, tasks):
@@ -157,6 +161,69 @@ def nekbone_results(test_number_directory, test_number, nodes, tasks):
     data = {"Nekbone PE": parallel_eff}
     return data 
 
+#-------------------------------Quantum-Espresso-----------------------------------------
+
+# Extracts the results of the Quantum Espresso test into a dictionary
+def quantum_espresso_results(test_number_directory, test_number, nodes, tasks):
+    from benchmark import quantum_espresso_cK
+
+    test_file_name = join(test_number_directory, f"quantum_espresso_n{nodes}_t{tasks}.out")
+    test_error_file_name = join(test_number_directory, f"quantum_espresso_n{nodes}_t{tasks}.err")
+    control_test_file_name = join(test_number_directory, "quantum_espresso_n1_t1.out")
+
+    if not os.path.exists(test_file_name):
+        raise FileNotFoundError(f"The file {test_file_name} does not exist.")
+
+    if not os.path.exists(control_test_file_name):
+        raise FileNotFoundError(f"The file {control_test_file_name} does not exist.")
+
+    #if open(test_error_file_name, 'r').read() != "":
+    #    print(f"{test_error_file_name} is nonempty") #This always throws an error on this test
+
+    control_execution_time = None
+    execution_time = None
+    control_comm_pct = None
+    comm_pct = None
+
+    # Extract Execution Time value for the control
+    control_lines = open(control_test_file_name,'r').read()
+
+     #PWSCF        :      6.23s CPU      6.89s WAL
+    control_execution_time_match = re.findall("PWSCF\s*:\s*([\d+\.\d+]+)", control_lines)
+    if control_execution_time_match:
+        control_execution_time = float(control_execution_time_match[-1])
+
+    # Extract Execution Time value
+    lines = open(test_file_name,'r').read()
+    execution_time_match = re.findall("PWSCF\s*:\s*([\d+\.\d+]+)", lines)
+    if execution_time_match:
+        execution_time = float(execution_time_match[-1])
+
+    # Extract Percent Time in Communication
+    #comm_pct_match = re.search(r"Comm\s*\|(?:\s*[\d\.]+\s*\|){4}\s*([\d\.]+)", lines)
+    #if comm_pct_match:
+    #    comm_pct = float(comm_pct_match.group(1))
+
+    if control_execution_time == None:
+        raise TestValueError("No value found for the n1_t1 execution time")
+    elif execution_time == None:
+        raise TestValueError(f"No value found for the n{nodes}_t{tasks} execution time")
+    #elif comm_pct == None:
+    #    raise TestValueError("No value found for the n{nodes}_t{tasks} Comm Pct")
+
+    #calculate xTime/MeasuredTime:
+    #So via some algebra xTime = cTime * (xK/cK)^3/nProc.
+    cK = quantum_espresso_cK #K value for nProc = 1
+    xK = round((cK**3 * tasks)**(1/3))
+    xTime = control_execution_time * (xK/cK)**3/tasks
+
+    parallel_eff = xTime/execution_time*100
+    data = {"QuanEspress PE": parallel_eff}
+    return data 
+
+
+
+
 
 args_dict = {}
 
@@ -203,11 +270,14 @@ if __name__ == "__main__":
 
         openfoam_dict = openfoam_results(test_number_directory, test_number, nodes, tasks)
         new_test_results.update(openfoam_dict)
-
+ 
         nekbone_dict = nekbone_results(test_number_directory, test_number, nodes, tasks)
         new_test_results.update(nekbone_dict)
  
-        
+        quantum_espresso_dict = quantum_espresso_results(test_number_directory, test_number, nodes, tasks)
+        new_test_results.update(quantum_espresso_dict)
+ 
+
         #Update the test results with the system info from the tests
         new_test_results['Nodes'] = nodes
         new_test_results['Tasks'] = tasks
