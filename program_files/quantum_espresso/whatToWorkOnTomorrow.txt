@@ -1,0 +1,7 @@
+make it so when we call it with a certain amount of processes
+it makes thes the sbatch script 
+
+cTime approx A*cK^3
+xTime approx cTime/cK^3 * xK^3/nProc
+xK = nearest Int to (cK^3*nProc)^.3333
+
