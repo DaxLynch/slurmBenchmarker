@@ -10,7 +10,6 @@ import shutil
 
 args_dict = {}
 column_names = ["Test Number", "Date", "Nodes", "Tasks","Provider", "Instance Type", "OS Version","Lammps PE","Lammps PCTComm","openFOAM PE","Nekbone PE","QuanEspress PE"]
-quantum_espresso_cK = 10
 
 #---------------------------------LAMMPS---------------------------------------
 
@@ -262,12 +261,12 @@ def quantum_espresso(test_number, nodes, tasks):
     #Via some algebra xK is (cK^3*nProc)^(1/3) and since K needs to be an integer, we round it.
     #But since it is not exact it means the xTime is not exactly equal to cTime,
     #So via some algebra xTime = cTime * (xK/cK)^3/nProc. This will be used when calculating parallel Eff.
-    cK = quantum_espresso_cK #K value for nProc = 1
-    xK = round((cK**3 * tasks)**(1/3))
+#    cK = quantum_espresso_cK #K value for nProc = 1
+#    xK = round((cK**3 * tasks)**(1/3))
 
     os.makedirs(job_directory, exist_ok=True)
     input_file_template_lines = open("program_files/quantum_espresso/pw.scf.in",'r').readlines()
-    input_file_template_lines[-1] = f"  {xK} {xK} {xK} 1 1 1 \n"
+ #   input_file_template_lines[-1] = f"  {xK} {xK} {xK} 1 1 1 \n"
     input_file_template_lines[8] = f"  outdir = '{job_directory}' \n"
     
     input_file = open(job_directory+"/pw.scf.in",'w')

@@ -222,7 +222,7 @@ def quantum_espresso_results(test_number_directory, test_number, nodes, tasks):
     return data 
 
 
-
+#-----------------------------------------------------------------------------
 
 
 args_dict = {}
@@ -230,7 +230,8 @@ args_dict = {}
 if __name__ == "__main__":
 
     # Create the parser
-    parser = argparse.ArgumentParser(description='Collates information from a series of test runs of a program on a slurm cluster')
+    parser = argparse.ArgumentParser(description='Collates information from a
+        series of test runs of a program on a slurm cluster')
 
     parser.add_argument('--test-number', required=True,type=str, help='Name of a series of test')
     # Parse arguments
@@ -265,7 +266,7 @@ if __name__ == "__main__":
     for nodes, tasks in open_tuple_file(node_file):
 
         new_test_results = dict.fromkeys(column_names, None)
-        lammps_dict = lammps_results(test_number_directory, test_number, nodes, tasks) #THis should check for existence of the lamps file, and if it produces a naan should atleast throw a warning
+        lammps_dict = lammps_results(test_number_directory, test_number, nodes, tasks) 
         new_test_results.update(lammps_dict)
 
         openfoam_dict = openfoam_results(test_number_directory, test_number, nodes, tasks)
