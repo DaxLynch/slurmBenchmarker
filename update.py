@@ -99,9 +99,9 @@ def openfoam_results(test_number_directory, test_number, nodes, tasks):
     #if comm_pct_match:
     #    comm_pct = float(comm_pct_match.group(1))
 
-    if control_execution_time == None:
+    if control_execution_time == None or len(control_execution_time_match) != 15:
         raise TestValueError("No value found for the n1_t1 execution time")
-    elif execution_time == None:
+    elif execution_time == None or len(execution_time_match) != 15:
         raise TestValueError(f"No value found for the n{nodes}_t{tasks} execution time")
     #elif comm_pct == None:
     #    raise TestValueError("No value found for the n{nodes}_t{tasks} Comm Pct")
@@ -165,7 +165,6 @@ def nekbone_results(test_number_directory, test_number, nodes, tasks):
 
 # Extracts the results of the Quantum Espresso test into a dictionary
 def quantum_espresso_results(test_number_directory, test_number, nodes, tasks):
-    from benchmark import quantum_espresso_cK
 
     test_file_name = join(test_number_directory, f"quantum_espresso_n{nodes}_t{tasks}.out")
     test_error_file_name = join(test_number_directory, f"quantum_espresso_n{nodes}_t{tasks}.err")
@@ -189,15 +188,23 @@ def quantum_espresso_results(test_number_directory, test_number, nodes, tasks):
     control_lines = open(control_test_file_name,'r').read()
 
      #PWSCF        :      6.23s CPU      6.89s WAL
-    control_execution_time_match = re.findall("PWSCF\s*:\s*([\d+\.\d+]+)", control_lines)
+    control_execution_time_match = re.findall(r'PWSCF\s*:\s*(?:(\d+)m)?(\d+\.\d+)s', control_lines)
     if control_execution_time_match:
-        control_execution_time = float(control_execution_time_match[-1])
+        minutes = 0
+        if control_execution_time_match[-1][0] != "":
+            minutes = float(control_execution_time_match[-1][0])
+        seconds = float(control_execution_time_match[-1][1])
+        control_execution_time = 60*minutes + seconds
 
     # Extract Execution Time value
     lines = open(test_file_name,'r').read()
-    execution_time_match = re.findall("PWSCF\s*:\s*([\d+\.\d+]+)", lines)
+    execution_time_match = re.findall(r'PWSCF\s*:\s*(?:(\d+)m)?(\d+\.\d+)s', lines)
     if execution_time_match:
-        execution_time = float(execution_time_match[-1])
+        minutes = 0
+        if execution_time_match[-1][0] != "":
+            minutes = float(execution_time_match[-1][0])
+        seconds = float(execution_time_match[-1][1])
+        execution_time = 60*minutes + seconds
 
     # Extract Percent Time in Communication
     #comm_pct_match = re.search(r"Comm\s*\|(?:\s*[\d\.]+\s*\|){4}\s*([\d\.]+)", lines)
@@ -207,17 +214,17 @@ def quantum_espresso_results(test_number_directory, test_number, nodes, tasks):
     if control_execution_time == None:
         raise TestValueError("No value found for the n1_t1 execution time")
     elif execution_time == None:
-        raise TestValueError(f"No value found for the n{nodes}_t{tasks} execution time")
+        raise TestValueError(f"No value found for the Quantum Espresso n{nodes}_t{tasks} execution time")
     #elif comm_pct == None:
     #    raise TestValueError("No value found for the n{nodes}_t{tasks} Comm Pct")
 
     #calculate xTime/MeasuredTime:
     #So via some algebra xTime = cTime * (xK/cK)^3/nProc.
-    cK = quantum_espresso_cK #K value for nProc = 1
-    xK = round((cK**3 * tasks)**(1/3))
-    xTime = control_execution_time * (xK/cK)**3/tasks
+#    cK = quantum_espresso_cK #K value for nProc = 1
+ #   xK = round((cK**3 * tasks)**(1/3))
+  #  xTime = control_execution_time * (xK/cK)**3/tasks
 
-    parallel_eff = xTime/execution_time*100
+    parallel_eff = control_execution_time/tasks/execution_time*100
     data = {"QuanEspress PE": parallel_eff}
     return data 
 
@@ -230,8 +237,7 @@ args_dict = {}
 if __name__ == "__main__":
 
     # Create the parser
-    parser = argparse.ArgumentParser(description='Collates information from a
-        series of test runs of a program on a slurm cluster')
+    parser = argparse.ArgumentParser(description='Collates information from a series of test runs of a program on a slurm cluster')
 
     parser.add_argument('--test-number', required=True,type=str, help='Name of a series of test')
     # Parse arguments
@@ -286,6 +292,7 @@ if __name__ == "__main__":
         new_test_results.update(system_info_dict)
 
         new_test_row = pd.DataFrame([new_test_results]).set_index("Test Number")
+        new_test_row = new_test_row.round(2)
         results_df = pd.concat([results_df, new_test_row])
 
 
