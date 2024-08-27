@@ -417,10 +417,10 @@ if __name__ == "__main__":
     write_system_info(new_test_number)
  
     for nodes, tasks in open_tuple_file(args_dict["tuples"]):
-#        lammps(new_test_number, nodes, tasks)
- #       openfoam(new_test_number, nodes, tasks)
-  #      nekbone(new_test_number, nodes, tasks)
-   #     quantum_espresso(new_test_number, nodes, tasks)
+        lammps(new_test_number, nodes, tasks)
+        openfoam(new_test_number, nodes, tasks)
+        nekbone(new_test_number, nodes, tasks)
+        quantum_espresso(new_test_number, nodes, tasks)
         xyce(new_test_number, nodes, tasks)
 
    
