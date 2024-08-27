@@ -229,6 +229,52 @@ def quantum_espresso_results(test_number_directory, test_number, nodes, tasks):
     return data 
 
 
+#------------------------------Xyce--------------------------------------------
+
+# Extracts the results of the Xyce test into a dictionary
+def xyce_results(test_number_directory, test_number, nodes, tasks):
+
+    test_file_name = join(test_number_directory, f"xyce_n{nodes}_t{tasks}.out")
+    test_error_file_name = join(test_number_directory, f"xyce_n{nodes}_t{tasks}.err")
+    control_test_file_name = join(test_number_directory, "xyce_n1_t1.out")
+
+    if not os.path.exists(test_file_name):
+        raise FileNotFoundError(f"The file {test_file_name} does not exist.")
+
+    if not os.path.exists(control_test_file_name):
+        raise FileNotFoundError(f"The file {control_test_file_name} does not exist.")
+
+    #if open(test_error_file_name, 'r').read() != "":
+    #    print(f"{test_error_file_name} is nonempty") #This always throws an error on this test
+
+    control_execution_time = None
+    execution_time = None
+    control_comm_pct = None
+    comm_pct = None
+
+    # Extract Execution Time value for the control
+    control_lines = open(control_test_file_name,'r').read()
+
+    control_execution_time_match = re.findall(r'Solvers Run Time:\s*(\d+\.\d+)', control_lines)
+    if control_execution_time_match:
+        control_execution_time = float(control_execution_time_match[-1])
+
+    # Extract Execution Time value
+    lines = open(test_file_name,'r').read()
+    execution_time_match = re.findall(r'Solvers Run Time:\s*(\d+\.\d+)', lines)
+    if execution_time_match:
+        execution_time = float(execution_time_match[-1])
+
+    if control_execution_time == None:
+        raise TestValueError("No value found for the n1_t1 execution time")
+    elif execution_time == None:
+        raise TestValueError(f"No value found for the Xyce n{nodes}_t{tasks} execution time")
+   
+    parallel_eff = control_execution_time/tasks/execution_time*100
+    data = {"Xyce PE": parallel_eff}
+    return data 
+
+
 #-----------------------------------------------------------------------------
 
 
@@ -284,7 +330,9 @@ if __name__ == "__main__":
         quantum_espresso_dict = quantum_espresso_results(test_number_directory, test_number, nodes, tasks)
         new_test_results.update(quantum_espresso_dict)
  
-
+        xyce_dict = xyce_results(test_number_directory, test_number, nodes, tasks)
+        new_test_results.update(xyce_dict)
+ 
         #Update the test results with the system info from the tests
         new_test_results['Nodes'] = nodes
         new_test_results['Tasks'] = tasks
