@@ -1,0 +1,5 @@
+Test Number,Date,Nodes,Tasks,Provider,Instance Type,OS Version,Lammps PE,Lammps PCTComm,openFOAM PE,Nekbone PE,QuanEspress PE,Xyce PE
+1724720666,Tue Aug 27 01:04:26 2024,1,1,aws,g4dn.8xlarge,ubuntu2204,100.0,0.83,100.0,100.0,100.0,100.0
+1724720666,Tue Aug 27 01:04:26 2024,1,4,aws,g4dn.8xlarge,ubuntu2204,96.91,1.81,97.26,101.3,62.8,20.69
+1724720666,Tue Aug 27 01:04:26 2024,1,8,aws,g4dn.8xlarge,ubuntu2204,89.44,2.9,90.36,96.95,46.0,10.92
+1724720666,Tue Aug 27 01:04:26 2024,4,64,aws,g4dn.8xlarge,ubuntu2204,81.08,10.53,64.27,88.02,18.54,0.12

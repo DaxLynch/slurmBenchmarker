@@ -1,3 +1,1 @@
-need to benchmark xyce and others
-
-need to create grapher.py that can pull from the pandas csv
+Create grapher.py
